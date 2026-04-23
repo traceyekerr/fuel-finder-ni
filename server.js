@@ -45,6 +45,8 @@ const COMMON_HEADERS = {
   'User-Agent':      'FuelWatch-UK/1.0 (Node.js; contact admin@example.com)',
   'Accept-Language': 'en-GB,en;q=0.9',
   'Accept-Encoding': 'identity', // disable gzip so we can read raw body easily
+  'Origin':          'https://www.fuel-finder.service.gov.uk',
+  'Referer':         'https://www.fuel-finder.service.gov.uk/',
 };
 
 // Optional extra API / subscription key (if your registration provided one)
