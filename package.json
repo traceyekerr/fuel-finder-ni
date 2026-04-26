@@ -1,7 +1,7 @@
 {
-  "name": "fuelwatch-uk",
+  "name": "fuel-finder-ni",
   "version": "1.0.0",
-  "description": "Live UK fuel price map using the GOV.UK Fuel Finder API",
+  "description": "Live Northern Ireland fuel price map using the GOV.UK Fuel Finder API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,5 +1,5 @@
 /**
- * FuelWatch UK – Backend Proxy Server
+ * Fuel Finder NI – Backend Proxy Server
  * ------------------------------------
  * - Exchanges Client ID + Secret for an OAuth token
  * - Fetches paginated PFS station metadata AND fuel prices
@@ -26,8 +26,9 @@ const PRICES_URL    = process.env.FUEL_FINDER_PRICES_URL
   || 'https://www.fuel-finder.service.gov.uk/api/v1/pfs/fuel-prices';
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.error('❌  Missing FUEL_FINDER_CLIENT_ID or FUEL_FINDER_CLIENT_SECRET in .env');
-  process.exit(1);
+  console.warn('⚠️   Missing FUEL_FINDER_CLIENT_ID or FUEL_FINDER_CLIENT_SECRET');
+  console.warn('     The server will start but /api/prices will return an error.');
+  console.warn('     Set these in Plesk Node.js environment variables or a .env file.');
 }
 
 // ── Caches ──────────────────────────────────────────────────
@@ -42,7 +43,7 @@ const DATA_CACHE_MS = 5 * 60 * 1000;
 // blocks requests without a proper User-Agent. We set browser-like
 // headers on every request to avoid being filtered out.
 const COMMON_HEADERS = {
-  'User-Agent':      'FuelWatch-UK/1.0 (Node.js; contact admin@example.com)',
+  'User-Agent':      'FuelFinderNI/1.0 (fuelfinderni.com; Node.js)',
   'Accept-Language': 'en-GB,en;q=0.9',
   'Accept-Encoding': 'identity', // disable gzip so we can read raw body easily
   'Origin':          'https://www.fuel-finder.service.gov.uk',
@@ -439,8 +440,19 @@ app.get('/api/status', (req, res) => {
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
+// Write startup errors to a file we can read via File Manager
+process.on('uncaughtException', err => {
+  const fs = require('fs');
+  const msg = `[${new Date().toISOString()}] CRASH: ${err.stack}\n`;
+  fs.appendFileSync('startup-error.log', msg);
+  process.exit(1);
+});
+
+// Passenger sets PORT to a high random port. Listen on all interfaces (0.0.0.0)
+// which is the default when no host is specified — DO NOT pass process.env.HOST
+// as Plesk sets HOST to the domain name which causes a bind error.
 app.listen(PORT, () => {
-  console.log(`\n⛽  FuelWatch UK running at http://localhost:${PORT}`);
+  console.log(`\n⛽  Fuel Finder NI running on port ${PORT}`);
   console.log(`    Client ID:   ${CLIENT_ID.slice(0, 8)}…`);
   console.log(`    Token URL:   ${TOKEN_URL}`);
   console.log(`    PFS URL:     ${PFS_URL}`);
