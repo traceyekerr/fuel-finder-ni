@@ -284,18 +284,48 @@
       display: none;
       position: absolute;
       top: 44px; left: 14px;
-      background: rgba(13, 16, 25, 0.88);
+      background: rgba(13, 16, 25, 0.92);
       border: 1.5px solid var(--amber);
       color: var(--amber);
       font-family: 'Barlow Condensed', sans-serif;
       font-weight: 700; font-size: 14px; letter-spacing: .05em;
-      padding: 5px 14px; border-radius: 20px;
-      z-index: 500;
-      pointer-events: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      padding: 6px 14px; border-radius: 20px;
+      z-index: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.4);
+      user-select: none;
     }
+    /* Grade picker dropdown */
+    #grade-picker {
+      display: none;
+      position: absolute;
+      top: 84px; left: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      z-index: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+      flex-direction: column;
+      gap: 4px;
+      min-width: 160px;
+    }
+    #grade-picker.open { display: flex; }
+    .grade-opt {
+      background: none; border: none; color: var(--dim);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 600; font-size: 15px;
+      padding: 10px 14px; border-radius: 8px;
+      text-align: left; cursor: pointer;
+      transition: background .12s, color .12s;
+    }
+    .grade-opt:hover { background: var(--panel2); color: var(--text); }
+    .grade-opt.active { background: var(--amber); color: #000; }
+
     @media (max-width: 680px) {
       #grade-pill { display: block; }
+      /* Hide fuel tabs inside sheet on mobile — grade pill replaces them */
+      #fuel-tabs { display: none; }
       /* Hide zoom controls on mobile — pinch to zoom works fine */
       .leaflet-control-zoom { display: none !important; }
     }
@@ -502,8 +532,18 @@
       </svg>
     </button>
 
-    <!-- Shows selected fuel grade on map -->
-    <div id="grade-pill">⛽ <span id="grade-pill-label">Unleaded</span></div>
+    <!-- Grade pill - tappable on mobile to change fuel type -->
+    <div id="grade-pill" title="Tap to change fuel grade">⛽ <span id="grade-pill-label">Unleaded</span> ▾</div>
+
+    <!-- Grade picker - appears below pill when tapped -->
+    <div id="grade-picker">
+      <button class="grade-opt active" data-fuel="E10">Unleaded</button>
+      <button class="grade-opt" data-fuel="B7">Diesel B7</button>
+      <button class="grade-opt" data-fuel="E5">Super Unleaded</button>
+      <button class="grade-opt" data-fuel="B10">Diesel B10</button>
+      <button class="grade-opt" data-fuel="SDV">Premium B7</button>
+      <button class="grade-opt" data-fuel="HVO">HVO</button>
+    </div>
     <div id="map-legend">
       <div class="legend-title">Price vs avg</div>
       <div class="legend-row"><div class="legend-dot" style="background:#10b981"></div>Cheapest</div>
@@ -1034,15 +1074,55 @@ document.querySelectorAll('.list-mode-btn').forEach(btn => {
   });
 });
 
+// ── Grade pill (mobile fuel selector) ────────────────────────
+const gradePill   = document.getElementById('grade-pill');
+const gradePicker = document.getElementById('grade-picker');
+
+// Desktop fuel tabs
 document.querySelectorAll('.fuel-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.fuel-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     activeFuel = tab.dataset.fuel;
-    // Update the grade pill on the map
     document.getElementById('grade-pill-label').textContent = tab.textContent;
+    document.querySelectorAll('.grade-opt').forEach(o => {
+      o.classList.toggle('active', o.dataset.fuel === activeFuel);
+    });
     applyFilters();
   });
+});
+
+gradePill?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  gradePicker.classList.toggle('open');
+});
+
+document.querySelectorAll('.grade-opt').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const fuel = btn.dataset.fuel;
+    activeFuel = fuel;
+    // Update pill label
+    document.getElementById('grade-pill-label').textContent = btn.textContent;
+    // Sync the desktop fuel tabs too
+    document.querySelectorAll('.fuel-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.fuel === fuel);
+    });
+    // Update grade picker active state
+    document.querySelectorAll('.grade-opt').forEach(o => {
+      o.classList.toggle('active', o.dataset.fuel === fuel);
+    });
+    gradePicker.classList.remove('open');
+    applyFilters();
+  });
+});
+
+// Close grade picker when tapping elsewhere
+document.addEventListener('click', () => gradePicker?.classList.remove('open'));
+
+// Also close picker when map is tapped
+document.getElementById('map')?.addEventListener('click', () => {
+  gradePicker?.classList.remove('open');
 });
 
 document.getElementById('search-input').addEventListener('input', applyFilters);
@@ -1062,10 +1142,11 @@ document.getElementById('search-clear').addEventListener('click', () => {
   const closeBtn = document.getElementById('sheet-close');
   if (!handle) return;
 
-  // Tap toggles open/closed (but not if tapping the X button or just after a marker tap)
+  // Tap toggles open/closed — but NOT if a map popup is open or marker was just tapped
   handle.addEventListener('click', (e) => {
     if (e.target === closeBtn || closeBtn?.contains(e.target)) return;
     if (markerJustTapped) return;
+    if (document.querySelector('.leaflet-popup')) return; // popup open = don't open sheet
     if (window.matchMedia('(max-width: 680px)').matches) {
       sidebar.classList.toggle('open');
     }
