@@ -398,8 +398,8 @@
       #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 16px 6px; flex-shrink: 0; }
       #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; }
       #sheet-peek-row { display: none; }
-      #sheet-close { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 4px 14px; font-size: 13px; cursor: pointer; margin-top: 4px; display: none; }
-      #sidebar.open #sheet-close { display: block; }
+      #sheet-close { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 4px 14px; font-size: 13px; cursor: pointer; margin-top: 4px; display: block !important; }
+      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; }
       #sidebar.open #sheet-drag-bar { background: var(--amber); }
       #header { padding: 8px 14px 8px; }
       #mob-toggle { display: none; }
@@ -420,15 +420,15 @@
       /* Hide legend and attribution on mobile — header covers that area */
       #map-legend { display: none; }
       .leaflet-top { display: none !important; }
-      /* Controls below the mobile header bar */
+      /* Controls — with safe area padding so they clear the nav bar */
       #locate-btn {
-        bottom: 20px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
         left: 14px;
         right: auto;
       }
       #list-btn {
         display: flex;
-        bottom: 20px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
         right: 14px;
       }
       /* Legend moves to top-right on mobile so it doesn't clash */
@@ -563,6 +563,12 @@
           <path d="M60 36 L76 36 L76 74 Q76 82 84 82 L84 90" stroke="#0c0e14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="mobile-logo-text">FUEL<b>FINDER</b> · NI</span>
+        <!-- Tiny legend dots -->
+        <span style="display:flex;gap:4px;align-items:center;margin-left:8px">
+          <span style="width:9px;height:9px;border-radius:2px;background:#10b981;display:inline-block"></span>
+          <span style="width:9px;height:9px;border-radius:2px;background:#f59e0b;display:inline-block"></span>
+          <span style="width:9px;height:9px;border-radius:2px;background:#ef4444;display:inline-block"></span>
+        </span>
       </div>
       <div id="grade-pill" title="Tap to change fuel grade">⛽ <span id="grade-pill-label">Unleaded</span> ▾</div>
     </div>
@@ -836,6 +842,11 @@ function initMap() {
     },
   });
   clusterGroup.addTo(map);
+
+  // Close sheet when map is tapped (catches any accidental opens)
+  map.on('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+  });
 
   // Refresh the sidebar list whenever the map view changes
   map.on('moveend', onMapViewChange);
@@ -1179,6 +1190,7 @@ document.getElementById('search-clear').addEventListener('click', () => {
 
   listBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (markerJustTapped) return; // don't open if a marker was just tapped
     sidebar.classList.add('open');
   });
 
