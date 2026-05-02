@@ -1310,8 +1310,11 @@ document.getElementById('locate-btn').addEventListener('click', () => {
       }
       map.setView(latlng, 13, { animate: true });
 
-      // Once the pan finishes, rebuild everything with cleared search
-      map.once('moveend', () => applyFilters());
+      // After pan settles, reset search and rebuild list with new bounds
+      setTimeout(() => {
+        currentBounds = map.getBounds();
+        applyFilters();
+      }, 600);
 
       // Close the mobile sheet so user can see the map
       if (window.matchMedia('(max-width: 680px)').matches) {
