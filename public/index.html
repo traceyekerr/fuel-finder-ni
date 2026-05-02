@@ -1275,12 +1275,11 @@ document.getElementById('locate-btn').addEventListener('click', () => {
     return;
   }
 
-  // Clear search when locating — just clear the input, let moveend update the count
+  // Clear search when locating
   const searchInput = document.getElementById('search-input');
   if (searchInput.value) {
     searchInput.value = '';
     document.getElementById('search-clear').style.display = 'none';
-    // Don't call applyFilters here — map.setView will trigger moveend which rebuilds the list
   }
 
   // If we already have the user's location, just pan back to it
@@ -1310,6 +1309,9 @@ document.getElementById('locate-btn').addEventListener('click', () => {
         }).addTo(map);
       }
       map.setView(latlng, 13, { animate: true });
+
+      // Once the pan finishes, rebuild everything with cleared search
+      map.once('moveend', () => applyFilters());
 
       // Close the mobile sheet so user can see the map
       if (window.matchMedia('(max-width: 680px)').matches) {
