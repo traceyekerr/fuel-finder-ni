@@ -304,75 +304,59 @@
     /* ── Mobile layout — bottom sheet instead of full-screen sidebar ── */
     @media (max-width: 680px) {
       body { overscroll-behavior: none; }
-
-      /* Map fills the top of the screen, sidebar slides up from the bottom */
       #sidebar {
         position: absolute; left: 0; right: 0; bottom: 0;
         width: 100%; min-width: 0;
-        height: 55vh;                  /* Opens to 55% of viewport */
+        height: 55vh;
         max-height: 85vh;
         border-right: none;
         border-top: 1px solid var(--border);
         border-radius: 16px 16px 0 0;
-        transform: translateY(calc(100% - 60px));  /* Peek height when closed */
+        transform: translateY(calc(100% - 60px));
         transition: transform .3s cubic-bezier(.4, 0, .2, 1);
         z-index: 900;
         box-shadow: 0 -4px 24px rgba(0,0,0,.4);
         padding-bottom: env(safe-area-inset-bottom);
       }
       #sidebar.open { transform: translateY(0); }
-
-      /* Drag handle + "Stations" peek row */
-      #sheet-handle {
-        display: flex; flex-direction: column; align-items: center;
-        padding: 8px 0 10px;
-        cursor: grab; user-select: none;
-        flex-shrink: 0;
-      }
-      #sheet-handle::before {
-        content: ''; width: 40px; height: 4px;
-        background: var(--border); border-radius: 2px;
-        margin-bottom: 8px;
-      }
-      #sheet-peek {
-        font-family: 'Barlow Condensed', sans-serif;
-        font-weight: 700; font-size: 14px;
-        letter-spacing: .08em; text-transform: uppercase;
-        color: var(--muted);
-      }
+      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 0 10px; cursor: grab; user-select: none; flex-shrink: 0; }
+      #sheet-handle::before { content: ''; width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; }
+      #sheet-peek { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
       #sheet-peek #sheet-peek-count { color: var(--amber); margin-left: 6px; }
-
       #header { padding: 12px 18px 12px; }
-      #mob-toggle { display: none; }  /* Replaced by drag handle */
-
-      /* Bigger fuel tabs for touch */
-      #fuel-tabs { padding: 8px 14px; }
-      .fuel-tab { font-size: 13px; padding: 10px 4px; min-height: 44px; }
-
-      /* Bigger station cards for touch */
+      #mob-toggle { display: none; }
+      #fuel-tabs { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 10px 14px 12px; }
+      #fuel-tabs::-webkit-scrollbar { display: none; }
+      .fuel-tab { flex: 0 0 auto; padding: 10px 14px; scroll-snap-align: start; min-height: 40px; }
       .station-card { min-height: 56px; }
       .card-body { padding: 13px 0 13px 9px; }
       .rank-badge { width: 30px; height: 30px; font-size: 14px; }
-
       .list-mode-btn { padding: 9px 4px; font-size: 12px; min-height: 38px; }
-
-      /* Larger search / clear tap targets */
       #search-input { padding: 14px 10px; font-size: 15px; }
       #search-clear { padding: 8px; }
 
-      /* Legend smaller on mobile */
-      #map-legend { bottom: 60vh; padding: 8px 10px; font-size: 11px; }
+      /* ── Map controls — all positioned above the 60px peek bar ── */
+      #locate-btn {
+        bottom: calc(74px + env(safe-area-inset-bottom));
+        right: 14px;
+      }
+      .leaflet-bottom.leaflet-right {
+        bottom: calc(130px + env(safe-area-inset-bottom)) !important;
+        right: 14px !important;
+      }
+      /* Legend moves to top-right on mobile so it doesn't clash */
+      #map-legend {
+        bottom: auto;
+        top: 14px;
+        right: 14px;
+        font-size: 11px;
+        padding: 8px 10px;
+      }
       #map-legend .legend-title { font-size: 10px; margin-bottom: 5px; }
-
-      /* Locate button positioned above sheet peek */
-      #locate-btn { bottom: calc(60px + env(safe-area-inset-bottom) + 14px); }
-
-      /* Zoom controls repositioned so they're not under the peek row */
-      .leaflet-bottom.leaflet-right { bottom: calc(60vh + 14px) !important; }
     }
 
     @media (min-width: 681px) {
-      #sheet-handle { display: none; }    /* Desktop: no drag handle */
+      #sheet-handle { display: none; }
     }
   </style>
 </head>
@@ -702,8 +686,8 @@ let highestId       = null;   // priciest station currently in the list
 function initMap() {
   const isMobile = window.matchMedia('(max-width: 680px)').matches;
   map = L.map('map', {
-    center: [54.65, -6.8],
-    zoom:   isMobile ? 8 : 9,       // Zoom out a touch on mobile so more is visible
+    center: [54.72, -6.7],
+    zoom:   isMobile ? 9 : 9,
     zoomControl: true,
     tap: true,
   });
