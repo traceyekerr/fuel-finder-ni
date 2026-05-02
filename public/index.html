@@ -50,13 +50,15 @@
     #map { width: 100%; height: 100%; }
 
     /* ── HEADER ── */
-    #header { padding: 20px 22px 16px; border-bottom: 1px solid var(--border); }
-    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-    .logo-icon { width: 36px; height: 36px; background: var(--amber); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25); }
+    #header { padding: 16px 20px 14px; border-bottom: 1px solid var(--border); }
+    .logo-row { display: flex; align-items: center; gap: 14px; }
+    .logo-icon { width: 54px; height: 54px; flex-shrink: 0; }
     .logo-icon svg { width: 100%; height: 100%; }
-    .logo-text { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: .02em; color: var(--text); line-height: 1; }
-    .logo-text span { color: var(--amber); }
-    .subtitle { font-size: 11.5px; color: var(--muted); letter-spacing: .04em; margin-left: 44px; }
+    .logo-text-block { display: flex; flex-direction: column; gap: 3px; }
+    .logo-text { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 28px; letter-spacing: 0.5px; color: #f59e0b; line-height: 1; }
+    .logo-accent { color: #ffffff; }
+    .logo-ni { color: #f59e0b; font-weight: 900; }
+    .logo-sub { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 2px; color: #64748b; margin-top: 1px; }
 
     /* ── SEARCH ── */
     #search-wrap { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
@@ -383,24 +385,25 @@
     <div id="header">
       <div class="logo-row">
         <div class="logo-icon">
-          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Pump body -->
-            <rect x="5" y="4" width="14" height="24" rx="2" fill="#0c0e14"/>
-            <!-- Display window showing price -->
-            <rect x="7" y="6.5" width="10" height="6" rx="1" fill="#10b981"/>
-            <!-- Pump handle slot -->
-            <rect x="7" y="15" width="10" height="2" rx="0.5" fill="#f59e0b"/>
-            <rect x="7" y="19" width="6"  height="1.5" rx="0.5" fill="#475569"/>
-            <rect x="7" y="22" width="8"  height="1.5" rx="0.5" fill="#475569"/>
-            <!-- Nozzle arm coming out the top/right -->
-            <path d="M19 10 L23 10 L23 20 Q23 23 26 23 L26 26" stroke="#0c0e14" stroke-width="2" stroke-linecap="round" fill="none"/>
-            <!-- Drop accent -->
-            <circle cx="26" cy="6.5" r="2.2" fill="#10b981"/>
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="20" fill="#f59e0b"/>
+            <rect x="18" y="14" width="42" height="62" rx="6" fill="#0c0e14"/>
+            <rect x="24" y="20" width="30" height="18" rx="3" fill="#fcd34d"/>
+            <rect x="27" y="23" width="6" height="11" rx="1.5" fill="#92400e" opacity="0.45"/>
+            <rect x="36" y="23" width="6" height="11" rx="1.5" fill="#92400e" opacity="0.45"/>
+            <rect x="45" y="23" width="6" height="11" rx="1.5" fill="#92400e" opacity="0.45"/>
+            <rect x="24" y="48" width="30" height="5" rx="2" fill="#f59e0b"/>
+            <rect x="24" y="59" width="18" height="4" rx="1.5" fill="#1e293b"/>
+            <rect x="24" y="68" width="24" height="4" rx="1.5" fill="#1e293b"/>
+            <path d="M60 36 L76 36 L76 74 Q76 82 84 82 L84 90" stroke="#0c0e14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="80" y="88" width="10" height="7" rx="3" fill="#0c0e14"/>
           </svg>
         </div>
-        <div class="logo-text">FUEL<span>FINDER</span> NI</div>
+        <div class="logo-text-block">
+          <div class="logo-text">FUEL<span class="logo-accent">FINDER</span><span class="logo-ni"> · NI</span></div>
+          <div class="logo-sub">LIVE PRICES · GOV.UK DATA</div>
+        </div>
       </div>
-      <div class="subtitle">LIVE PRICES · GOV.UK FUEL FINDER</div>
     </div>
 
     <div id="search-wrap">
