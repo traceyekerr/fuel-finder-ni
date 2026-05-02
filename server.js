@@ -372,12 +372,18 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // ── Background data fetch ───────────────────────────────────
-// Fetches fresh data on startup and every 15 minutes so users
+// Fetches fresh data on startup and every 30 minutes so users
 // always get an instant response from cache, never wait for a
-// live API call.
-const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+// live API call. A lock prevents concurrent fetches.
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+let refreshing = false;
 
 async function refreshData() {
+  if (refreshing) {
+    console.log('⏭️   Refresh already in progress, skipping.');
+    return;
+  }
+  refreshing = true;
   const t = new Date().toISOString().slice(11, 19);
   try {
     console.log(`\n[${t}] 🔄  Background refresh starting…`);
@@ -408,7 +414,8 @@ async function refreshData() {
     console.log(`✅  Cache updated – ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
   } catch (err) {
     console.error(`[${t}] ❌  Background refresh failed:`, err.message);
-    // Keep serving stale cache if we have it
+  } finally {
+    refreshing = false; // always release the lock
   }
 }
 
