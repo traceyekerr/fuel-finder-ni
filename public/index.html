@@ -360,12 +360,14 @@
     }
     #locate-btn {
       position: absolute; bottom: 100px; right: 14px; z-index: 500;
-      width: 44px; height: 44px;
+      height: 44px; padding: 0 14px; gap: 8px;
       background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
       color: var(--text); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: all .15s;
       box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px;
+      letter-spacing: .04em;
     }
     #locate-btn:hover       { border-color: var(--amber); color: var(--amber); }
     #locate-btn.locating    { animation: locatePulse 1.4s infinite; }
@@ -419,7 +421,7 @@
       #sheet-peek-row { display: none; }
       #sheet-close { display: block; background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 5px 20px; font-size: 14px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; cursor: pointer; letter-spacing: .04em; }
 
-      #header { padding: 8px 14px; }
+      #header { display: none; }
       #mob-toggle { display: none; }
       .logo-icon { width: 38px; height: 38px; }
       .logo-text { font-size: 20px; }
@@ -557,16 +559,17 @@
       <div class="loading-sub">Fetching live data from GOV.UK Fuel Finder</div>
     </div>
     <button id="locate-btn" aria-label="Find my location">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
       </svg>
+      <span id="locate-label">My Location</span>
     </button>
 
     <!-- Floating list button — opens the bottom sheet on mobile -->
     <button id="list-btn" aria-label="Show station list">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      <span id="list-btn-count"></span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span id="list-btn-count">Stations</span>
     </button>
 
     <!-- Mobile top bar — logo + grade selector (hidden on desktop) -->
@@ -600,7 +603,6 @@
       <button class="grade-opt" data-fuel="HVO">HVO</button>
     </div>
     <div id="map-legend">
-      <div class="legend-title">Marker colours</div>
       <div class="legend-row"><div class="legend-dot" style="background:#10b981"></div>Cheapest</div>
       <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Average</div>
       <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div>Priciest</div>
@@ -1231,7 +1233,9 @@ document.getElementById('search-clear').addEventListener('click', () => {
   const observer = new MutationObserver(() => {
     const count = document.getElementById('station-count')?.textContent || '';
     document.getElementById('sheet-peek-count').textContent = count ? ' · ' + count : '';
-    document.getElementById('list-btn-count').textContent = count || '';
+    // Extract just the number from count text like "27 stations in view"
+    const num = count.match(/\d+/)?.[0];
+    document.getElementById('list-btn-count').textContent = num ? `${num} Stations` : 'Stations';
   });
   const target = document.getElementById('station-count');
   if (target) observer.observe(target, { childList: true, characterData: true, subtree: true });
@@ -1263,10 +1267,12 @@ document.getElementById('locate-btn').addEventListener('click', () => {
   }
 
   btn.classList.add('locating');
+  document.getElementById('locate-label').textContent = 'Locating…';
   navigator.geolocation.getCurrentPosition(
     pos => {
       btn.classList.remove('locating');
       btn.classList.add('located');
+      document.getElementById('locate-label').textContent = 'My Location';
       const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
       userMarker = L.marker(latlng, {
         icon: L.divIcon({ html: '<div class="user-location-marker"></div>', className: '', iconSize: [18, 18], iconAnchor: [9, 9] }),
@@ -1289,6 +1295,7 @@ document.getElementById('locate-btn').addEventListener('click', () => {
     },
     err => {
       btn.classList.remove('locating');
+      document.getElementById('locate-label').textContent = 'My Location';
       const msg = err.code === 1
         ? "Location permission was denied. You can enable it in your browser's site settings."
         : "Couldn't get your location. Please try again.";
