@@ -79,11 +79,13 @@ function request(method, url, { headers = {}, body } = {}) {
       path:     u.pathname + u.search,
       method,
       headers:  mergedHeaders,
+      timeout:  20000,
     }, res => {
       let raw = '';
       res.on('data', d => raw += d);
       res.on('end', () => resolve({ status: res.statusCode, body: raw, headers: res.headers }));
     });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out after 20s')); });
     req.on('error', reject);
     if (body) req.write(body);
     req.end();
@@ -404,13 +406,13 @@ async function refreshData() {
     console.log(`\n[${t}] 🔄  Background refresh starting…`);
     const token = await fetchToken();
 
-    console.log('📥  Fetching station metadata…');
-    const stations = await fetchAllBatches(PFS_URL, token);
-    console.log(`   → ${stations.length} stations total`);
-
-    console.log('💷  Fetching fuel prices…');
-    const prices = await fetchAllBatches(PRICES_URL, token);
-    console.log(`   → ${prices.length} price records total`);
+    // Fetch stations and prices in parallel — cuts load time roughly in half
+    console.log('📥  Fetching stations + prices in parallel…');
+    const [stations, prices] = await Promise.all([
+      fetchAllBatches(PFS_URL, token),
+      fetchAllBatches(PRICES_URL, token),
+    ]);
+    console.log(`   → ${stations.length} stations, ${prices.length} price records`);
 
     const merged     = mergeStationsWithPrices(stations, prices);
     const withPrices = merged.filter(s => s.prices.length > 0);
