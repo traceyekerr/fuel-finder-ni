@@ -521,11 +521,11 @@
     </div>
 
     <div id="fuel-tabs">
-      <button class="fuel-tab active" data-fuel="E10">Unleaded</button>
-      <button class="fuel-tab" data-fuel="B7">Diesel B7</button>
+      <button class="fuel-tab active" data-fuel="B7">Diesel</button>
+      <button class="fuel-tab" data-fuel="E10">Unleaded</button>
       <button class="fuel-tab" data-fuel="E5">Super Unleaded</button>
       <button class="fuel-tab" data-fuel="B10">Diesel B10</button>
-      <button class="fuel-tab" data-fuel="SDV">Premium B7</button>
+      <button class="fuel-tab" data-fuel="SDV">Diesel Premium B7</button>
       <button class="fuel-tab" data-fuel="HVO">HVO</button>
     </div>
 
@@ -597,16 +597,16 @@
         </svg>
         <span class="mobile-logo-text">FUEL<b>FINDER</b> · NI</span>
       </div>
-      <div id="grade-pill" title="Tap to change fuel grade">⛽ <span id="grade-pill-label">Unleaded</span> ▾</div>
+      <div id="grade-pill" title="Tap to change fuel grade">⛽ <span id="grade-pill-label">Diesel</span> ▾</div>
     </div>
 
     <!-- Grade picker - appears below pill when tapped -->
     <div id="grade-picker">
-      <button class="grade-opt active" data-fuel="E10">Unleaded</button>
-      <button class="grade-opt" data-fuel="B7">Diesel B7</button>
+      <button class="grade-opt active" data-fuel="B7">Diesel</button>
+      <button class="grade-opt" data-fuel="E10">Unleaded</button>
       <button class="grade-opt" data-fuel="E5">Super Unleaded</button>
       <button class="grade-opt" data-fuel="B10">Diesel B10</button>
-      <button class="grade-opt" data-fuel="SDV">Premium B7</button>
+      <button class="grade-opt" data-fuel="SDV">Diesel Premium B7</button>
       <button class="grade-opt" data-fuel="HVO">HVO</button>
     </div>
     <div id="map-legend">
@@ -693,9 +693,9 @@ const titleCase = s => {
 const fuelLabel  = f => ({
   E10: 'Unleaded',
   E5:  'Super Unleaded',
-  B7:  'Diesel B7',
+  B7:  'Diesel',
   B10: 'Diesel B10',
-  SDV: 'Premium B7',
+  SDV: 'Diesel Premium B7',
   HVO: 'HVO (renewable)',
 }[f] || f);
 
@@ -825,7 +825,7 @@ function priceClass(p, thresholds) {
 // ═══════════════════════════════════════════════════════════
 let allStations     = [];
 let displayStations = [];
-let activeFuel      = 'E10';
+let activeFuel      = 'B7';
 let selectedId      = null;
 let markers         = {};
 let clusterGroup;   // Leaflet.markercluster group
@@ -1275,12 +1275,12 @@ document.getElementById('locate-btn').addEventListener('click', () => {
     return;
   }
 
-  // Clear search when locating
+  // Clear search when locating — just clear the input, let moveend update the count
   const searchInput = document.getElementById('search-input');
   if (searchInput.value) {
     searchInput.value = '';
     document.getElementById('search-clear').style.display = 'none';
-    applyFilters();
+    // Don't call applyFilters here — map.setView will trigger moveend which rebuilds the list
   }
 
   // If we already have the user's location, just pan back to it
