@@ -1,12 +1,11 @@
 /**
  * Fuel Finder NI – Backend Proxy Server
- * ------------------------------------
- * - Exchanges Client ID + Secret for an OAuth token
- * - Fetches paginated PFS station metadata AND fuel prices
- * - Merges them and serves to the frontend
  */
 
-require('dotenv').config();
+// Explicitly load .env from the same directory as server.js
+// Passenger changes the working directory so we must use __dirname
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+
 const express = require('express');
 const path    = require('path');
 const https   = require('https');
@@ -36,7 +35,6 @@ let cachedToken    = null;
 let tokenExpiresAt = 0;
 let cachedData     = null;
 let cachedDataAt   = 0;
-const DATA_CACHE_MS = 5 * 60 * 1000;
 
 // ── HTTP helper ─────────────────────────────────────────────
 // NOTE: The Fuel Finder API sits behind AWS CloudFront/WAF, which
@@ -364,7 +362,7 @@ function mergeStationsWithPrices(stations, priceRecords) {
 }
 
 // ── Routes ──────────────────────────────────────────────────
-// No-cache headers so browser always picks up latest HTML/JS
+// No-cache so browser always picks up latest HTML/JS
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -373,18 +371,16 @@ app.use(express.static(path.join(__dirname, 'public'), {
   },
 }));
 
-app.get('/api/prices', async (req, res) => {
-  const t = new Date().toISOString().slice(11, 19); // HH:MM:SS
-  try {
-    // Serve from 5-min cache unless ?refresh=1
-    if (!req.query.refresh && cachedData && (Date.now() - cachedDataAt) < DATA_CACHE_MS) {
-      const ageSec = Math.round((Date.now() - cachedDataAt) / 1000);
-      const freshIn = Math.round((DATA_CACHE_MS - (Date.now() - cachedDataAt)) / 1000);
-      console.log(`[${t}] 📋  Served cached (${ageSec}s old, refresh available in ${freshIn}s) – ${cachedData.stations.length} stations`);
-      return res.json(cachedData);
-    }
+// ── Background data fetch ───────────────────────────────────
+// Fetches fresh data on startup and every 15 minutes so users
+// always get an instant response from cache, never wait for a
+// live API call.
+const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
-    console.log(`\n[${t}] 🔄  Fetching fresh data from Fuel Finder…`);
+async function refreshData() {
+  const t = new Date().toISOString().slice(11, 19);
+  try {
+    console.log(`\n[${t}] 🔄  Background refresh starting…`);
     const token = await fetchToken();
 
     console.log('📥  Fetching station metadata…');
@@ -409,19 +405,30 @@ app.get('/api/prices', async (req, res) => {
     };
     cachedDataAt = Date.now();
 
-    console.log(`📦  Served ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
-    res.json(cachedData);
+    console.log(`✅  Cache updated – ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
+  } catch (err) {
+    console.error(`[${t}] ❌  Background refresh failed:`, err.message);
+    // Keep serving stale cache if we have it
+  }
+}
+
+app.get('/api/prices', async (req, res) => {
+  const t = new Date().toISOString().slice(11, 19);
+  try {
+    if (cachedData) {
+      const ageSec = Math.round((Date.now() - cachedDataAt) / 1000);
+      console.log(`[${t}] 📋  Served cache (${ageSec}s old) – ${cachedData.stations.length} stations`);
+      // If someone explicitly requests a refresh, trigger one in the background
+      if (req.query.refresh) refreshData();
+      return res.json(cachedData);
+    }
+
+    // No cache yet — this only happens on first ever request before startup fetch completes
+    console.log(`[${t}] ⏳  No cache yet, waiting for startup fetch…`);
+    res.status(503).json({ error: 'Server is still loading data, please try again in 30 seconds.' });
 
   } catch (err) {
     console.error(`[${t}] ❌  /api/prices error:`, err.message);
-
-    // If we have *any* cached data (even stale), serve that rather than failing outright
-    if (cachedData) {
-      const ageMin = Math.round((Date.now() - cachedDataAt) / 60000);
-      console.log(`[${t}] 🛟  Serving stale cache (${ageMin} min old) as fallback`);
-      return res.json({ ...cachedData, stale: true, error: err.message });
-    }
-
     res.status(502).json({ error: err.message });
   }
 });
@@ -440,21 +447,15 @@ app.get('/api/status', (req, res) => {
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// Write startup errors to a file we can read via File Manager
-process.on('uncaughtException', err => {
-  const fs = require('fs');
-  const msg = `[${new Date().toISOString()}] CRASH: ${err.stack}\n`;
-  fs.appendFileSync('startup-error.log', msg);
-  process.exit(1);
-});
-
-// Passenger sets PORT to a high random port. Listen on all interfaces (0.0.0.0)
-// which is the default when no host is specified — DO NOT pass process.env.HOST
-// as Plesk sets HOST to the domain name which causes a bind error.
 app.listen(PORT, () => {
   console.log(`\n⛽  Fuel Finder NI running on port ${PORT}`);
-  console.log(`    Client ID:   ${CLIENT_ID.slice(0, 8)}…`);
+  console.log(`    Client ID:   ${CLIENT_ID ? CLIENT_ID.slice(0, 8) + '…' : '(NOT SET)'}`);
   console.log(`    Token URL:   ${TOKEN_URL}`);
   console.log(`    PFS URL:     ${PFS_URL}`);
   console.log(`    Prices URL:  ${PRICES_URL}\n`);
+
+  // Fetch data immediately on startup then every 15 minutes
+  // This means users always get instant cached responses
+  refreshData();
+  setInterval(refreshData, REFRESH_INTERVAL_MS);
 });
