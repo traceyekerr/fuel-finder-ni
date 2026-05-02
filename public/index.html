@@ -377,73 +377,68 @@
       box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2), 0 2px 8px rgba(0,0,0,.4);
     }
 
-    /* ── Mobile layout — bottom sheet instead of full-screen sidebar ── */
+    /* ── Mobile layout ── */
     @media (max-width: 680px) {
       body { overscroll-behavior: none; }
+
+      /* Fixed positioning — definitively viewport-relative, no browser scroll tricks */
       #sidebar {
-        position: absolute; left: 0; right: 0; bottom: 0;
+        position: fixed !important;
+        left: 0; right: 0; bottom: 0;
         width: 100%; min-width: 0;
-        height: 80vh;
-        max-height: 90vh;
+        height: 82vh;
         border-right: none;
         border-top: 1px solid var(--border);
         border-radius: 16px 16px 0 0;
         transform: translateY(100%);
         transition: transform .3s cubic-bezier(.4, 0, .2, 1);
-        z-index: 900;
-        box-shadow: 0 -4px 24px rgba(0,0,0,.4);
+        z-index: 1000;
+        box-shadow: 0 -4px 24px rgba(0,0,0,.5);
         padding-bottom: env(safe-area-inset-bottom);
+        display: flex; flex-direction: column;
       }
-      #sidebar.open { transform: translateY(0); }
-      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 16px 6px; flex-shrink: 0; }
-      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; }
-      #sheet-peek-row { display: none; }
-      #sheet-close { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 4px 14px; font-size: 13px; cursor: pointer; margin-top: 4px; display: block !important; }
-      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; }
+      #sidebar.open { transform: translateY(0) !important; }
+      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 10px 16px 8px; flex-shrink: 0; }
+      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; }
       #sidebar.open #sheet-drag-bar { background: var(--amber); }
-      #header { padding: 8px 14px 8px; }
+      #sheet-peek-row { display: none; }
+      #sheet-close { display: block; background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 5px 20px; font-size: 14px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; cursor: pointer; letter-spacing: .04em; }
+
+      #header { padding: 8px 14px; }
       #mob-toggle { display: none; }
-      /* Compact logo on mobile so fuel tabs stay visible */
       .logo-icon { width: 38px; height: 38px; }
       .logo-text { font-size: 20px; }
-      .logo-sub { font-size: 10px; letter-spacing: 1.5px; }
-      #fuel-tabs { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 10px 14px 12px; }
-      #fuel-tabs::-webkit-scrollbar { display: none; }
-      .fuel-tab { flex: 0 0 auto; padding: 10px 14px; scroll-snap-align: start; min-height: 40px; }
+      .logo-sub { font-size: 10px; }
+      #fuel-tabs { display: none; }
       .station-card { min-height: 56px; }
       .card-body { padding: 13px 0 13px 9px; }
       .rank-badge { width: 30px; height: 30px; font-size: 14px; }
-      .list-mode-btn { padding: 9px 4px; font-size: 12px; min-height: 38px; }
+      .list-mode-btn { padding: 9px 4px; font-size: 12px; }
       #search-input { padding: 14px 10px; font-size: 15px; }
       #search-clear { padding: 8px; }
 
-      /* Hide legend and attribution on mobile — header covers that area */
-      #map-legend { display: none; }
-      .leaflet-top { display: none !important; }
-      /* Controls — with safe area padding so they clear the nav bar */
-      #locate-btn {
-        bottom: calc(16px + env(safe-area-inset-bottom));
-        left: 14px;
-        right: auto;
-      }
-      #list-btn {
-        display: flex;
-        bottom: calc(16px + env(safe-area-inset-bottom));
-        right: 14px;
-      }
-      /* Legend moves to top-right on mobile so it doesn't clash */
-      #map-legend {
-        bottom: auto;
-        top: 14px;
-        right: 14px;
-        font-size: 11px;
-        padding: 8px 10px;
-      }
-      #map-legend .legend-title { font-size: 10px; margin-bottom: 5px; }
+      /* Buttons above nav bar */
+      #locate-btn { bottom: calc(28px + env(safe-area-inset-bottom)); left: 14px; right: auto; }
+      #list-btn { display: flex; bottom: calc(28px + env(safe-area-inset-bottom)); right: 14px; }
+
+      /* Zoom controls hidden — pinch to zoom */
+      .leaflet-control-zoom { display: none !important; }
+
+      /* Attribution — bottom left, above buttons */
+      .leaflet-bottom.leaflet-left { bottom: calc(82px + env(safe-area-inset-bottom)) !important; left: 0 !important; }
+      .leaflet-control-attribution { font-size: 9px !important; }
+
+      /* Legend — bottom left above attribution */
+      #map-legend { display: block; bottom: calc(116px + env(safe-area-inset-bottom)); left: 14px; right: auto; padding: 6px 10px; font-size: 11px; }
+      #map-legend .legend-title { font-size: 10px; margin-bottom: 4px; }
     }
 
     @media (min-width: 681px) {
       #sheet-handle { display: none; }
+      #mobile-header { display: none !important; }
+      #list-btn { display: none !important; }
+      #grade-pill { display: none !important; }
+      #grade-picker { display: none !important; }
     }
   </style>
 </head>
@@ -904,13 +899,17 @@ function buildMarkers() {
       markerJustTapped = true;
       setTimeout(() => { markerJustTapped = false; }, 400);
       selectedId = s.id;
-      // Close the sheet on mobile so popup is visible
+      // Close the sheet on mobile so popup is fully visible
       if (window.matchMedia('(max-width: 680px)').matches) {
         document.getElementById('sidebar').classList.remove('open');
       }
       buildList();
-      document.querySelector(`.station-card[data-id="${s.id}"]`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Only scroll card if sidebar is open
+      const sidebarOpen = document.getElementById('sidebar').classList.contains('open');
+      if (sidebarOpen) {
+        document.querySelector(`.station-card[data-id="${s.id}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     });
 
     mk.bindPopup(buildPopup(s), { maxWidth: 280 });
@@ -1055,7 +1054,12 @@ function selectStation(id, shouldPan) {
     // Try to open popup; if marker is inside a cluster it'll silently no-op
     mk.openPopup();
   }
-  document.querySelector(`.station-card[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Only scroll card into view if the sidebar is visible
+  const isMob = window.matchMedia('(max-width: 680px)').matches;
+  const sidebarOpen = document.getElementById('sidebar').classList.contains('open');
+  if (!isMob || sidebarOpen) {
+    document.querySelector(`.station-card[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 // ── Filter & render ───────────────────────────────────────
