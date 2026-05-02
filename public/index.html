@@ -583,12 +583,6 @@
           <path d="M60 36 L76 36 L76 74 Q76 82 84 82 L84 90" stroke="#0c0e14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="mobile-logo-text">FUEL<b>FINDER</b> · NI</span>
-        <!-- Tiny legend dots -->
-        <span style="display:flex;gap:4px;align-items:center;margin-left:8px">
-          <span style="width:9px;height:9px;border-radius:2px;background:#10b981;display:inline-block"></span>
-          <span style="width:9px;height:9px;border-radius:2px;background:#f59e0b;display:inline-block"></span>
-          <span style="width:9px;height:9px;border-radius:2px;background:#ef4444;display:inline-block"></span>
-        </span>
       </div>
       <div id="grade-pill" title="Tap to change fuel grade">⛽ <span id="grade-pill-label">Unleaded</span> ▾</div>
     </div>
@@ -940,16 +934,20 @@ function buildMarkers() {
 
     mk.bindPopup(buildPopup(s), { maxWidth: 280 });
 
-    // On mobile, pan so the marker sits at 60% from top — popup appears above with room
+    // On mobile, pan so the marker is centred horizontally and at 60% vertically
+    // so the popup has room above it to display fully
     mk.on('popupopen', (e) => {
       if (window.matchMedia('(max-width: 680px)').matches) {
         setTimeout(() => {
           const markerPx = map.latLngToContainerPoint(e.popup.getLatLng());
+          const mapW = map.getContainer().offsetWidth;
           const mapH = map.getContainer().offsetHeight;
-          const targetY = mapH * 0.60;
+          const targetX = mapW * 0.50; // centre horizontally
+          const targetY = mapH * 0.60; // 60% down so popup shows above
+          const deltaX = markerPx.x - targetX;
           const deltaY = markerPx.y - targetY;
-          if (Math.abs(deltaY) > 30) {
-            map.panBy([0, deltaY], { animate: true, duration: 0.3 });
+          if (Math.abs(deltaX) > 20 || Math.abs(deltaY) > 30) {
+            map.panBy([deltaX, deltaY], { animate: true, duration: 0.3 });
           }
         }, 50);
       }
@@ -1015,6 +1013,10 @@ function buildList() {
   const label = boundsFilter ? 'in view' : 'total';
   document.getElementById('station-count').textContent =
     `${stations.length} station${stations.length!==1?'s':''} ${label}`;
+
+  // Update the floating list button count
+  const listBtnCount = document.getElementById('list-btn-count');
+  if (listBtnCount) listBtnCount.textContent = `${stations.length} Stations`;
 
   if (!stations.length) {
     list.innerHTML = `<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">No stations with ${fuelLabel(activeFuel)} data</div>`;
@@ -1230,15 +1232,19 @@ document.getElementById('search-clear').addEventListener('click', () => {
   });
 
   // Keep list button count and peek count in sync
-  const observer = new MutationObserver(() => {
+  function updateListBtn() {
     const count = document.getElementById('station-count')?.textContent || '';
     document.getElementById('sheet-peek-count').textContent = count ? ' · ' + count : '';
-    // Extract just the number from count text like "27 stations in view"
     const num = count.match(/\d+/)?.[0];
     document.getElementById('list-btn-count').textContent = num ? `${num} Stations` : 'Stations';
-  });
+  }
+
+  const observer = new MutationObserver(updateListBtn);
   const target = document.getElementById('station-count');
-  if (target) observer.observe(target, { childList: true, characterData: true, subtree: true });
+  if (target) {
+    observer.observe(target, { childList: true, characterData: true, subtree: true });
+    updateListBtn(); // run immediately in case content already set
+  }
 })();
 
 // ── Locate me: pan to user's current position and show a marker ──
