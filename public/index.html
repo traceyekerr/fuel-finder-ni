@@ -8,6 +8,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Fuel Finder NI" />
   <title>Fuel Finder NI – Live Prices</title>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8NWXKV75ZV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-8NWXKV75ZV');
+  </script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f59e0b'/%3E%3Crect x='7' y='6' width='14' height='22' rx='2' fill='%230c0e14'/%3E%3Crect x='9' y='8' width='10' height='6' rx='1' fill='%2310b981'/%3E%3Crect x='9' y='16' width='10' height='1.8' rx='.5' fill='%23f59e0b'/%3E%3Ccircle cx='26' cy='8' r='2' fill='%2310b981'/%3E%3C/svg%3E"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
@@ -265,8 +273,13 @@
     .leaflet-container { background: #e8ebf0 !important; }
     .leaflet-control-attribution { background: rgba(255,255,255,.85) !important; color: #374151 !important; font-size: 10px !important; }
     .leaflet-control-attribution a { color: #1e40af !important; }
+    /* Desktop: zoom bottom-left above legend, locate hidden */
+    @media (min-width: 681px) {
+      #locate-btn { display: none !important; }
+      .leaflet-bottom.leaflet-left { bottom: 120px !important; left: 14px !important; }
+    }
 
-    #map-legend { position: absolute; bottom: 30px; right: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; z-index: 500; font-size: 12px; }
+    #map-legend { position: absolute; bottom: 30px; left: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; z-index: 500; font-size: 12px; }
     .legend-title { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
     .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; color: var(--dim); }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
@@ -838,7 +851,7 @@ function initMap() {
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap © CARTO', subdomains: 'abcd', maxZoom: 19
   }).addTo(map);
-  map.zoomControl.setPosition('bottomright');
+  map.zoomControl.setPosition('bottomleft');
 
   // Cluster group – stations merge into numbered clusters at low zoom,
   // then split out into individual price markers as you zoom in.
