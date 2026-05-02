@@ -279,7 +279,24 @@
 
     #mob-toggle { display: none; position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 14px; z-index: 600; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px; color: var(--text); cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; }
 
-    /* ── Locate me button (visible on all viewports) ── */
+    /* Grade pill on map */
+    #grade-pill {
+      display: none;
+      position: absolute;
+      bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--panel);
+      border: 1.5px solid var(--amber);
+      color: var(--amber);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 14px; letter-spacing: .05em;
+      padding: 6px 16px; border-radius: 20px;
+      z-index: 500;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    @media (max-width: 680px) {
+      #grade-pill { display: block; bottom: calc(70px + env(safe-area-inset-bottom)); }
+    }
     #locate-btn {
       position: absolute; bottom: 100px; right: 14px; z-index: 500;
       width: 44px; height: 44px;
@@ -319,10 +336,14 @@
         padding-bottom: env(safe-area-inset-bottom);
       }
       #sidebar.open { transform: translateY(0); }
-      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 0 10px; cursor: grab; user-select: none; flex-shrink: 0; }
-      #sheet-handle::before { content: ''; width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; }
+      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 16px 10px; cursor: grab; user-select: none; flex-shrink: 0; }
+      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; }
+      #sheet-peek-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
       #sheet-peek { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
       #sheet-peek #sheet-peek-count { color: var(--amber); margin-left: 6px; }
+      #sheet-close { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 3px 12px; font-size: 14px; cursor: pointer; display: none; }
+      #sidebar.open #sheet-close { display: block; }
+      #sidebar.open #sheet-drag-bar { background: var(--amber); }
       #header { padding: 8px 14px 8px; }
       #mob-toggle { display: none; }
       /* Compact logo on mobile so fuel tabs stay visible */
@@ -381,7 +402,11 @@
 <div id="app">
   <aside id="sidebar">
     <div id="sheet-handle">
-      <div id="sheet-peek">Stations<span id="sheet-peek-count"></span></div>
+      <div id="sheet-drag-bar"></div>
+      <div id="sheet-peek-row">
+        <div id="sheet-peek">Stations<span id="sheet-peek-count"></span></div>
+        <button id="sheet-close" aria-label="Close">✕</button>
+      </div>
     </div>
     <div id="header">
       <div class="logo-row">
@@ -419,8 +444,8 @@
 
     <div id="fuel-tabs">
       <button class="fuel-tab active" data-fuel="E10">Unleaded</button>
-      <button class="fuel-tab" data-fuel="E5">Super Unleaded</button>
       <button class="fuel-tab" data-fuel="B7">Diesel B7</button>
+      <button class="fuel-tab" data-fuel="E5">Super Unleaded</button>
       <button class="fuel-tab" data-fuel="B10">Diesel B10</button>
       <button class="fuel-tab" data-fuel="SDV">Premium B7</button>
       <button class="fuel-tab" data-fuel="HVO">HVO</button>
@@ -474,6 +499,9 @@
         <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
       </svg>
     </button>
+
+    <!-- Shows selected fuel grade on map -->
+    <div id="grade-pill">⛽ <span id="grade-pill-label">Unleaded</span></div>
     <div id="map-legend">
       <div class="legend-title">Price vs avg</div>
       <div class="legend-row"><div class="legend-dot" style="background:#10b981"></div>Cheapest</div>
@@ -785,7 +813,9 @@ function buildMarkers() {
       zIndexOffset: pc === 'cheap' ? 1000 : pc === 'mid' ? 500 : 0,
     });
 
-    mk.on('click', () => {
+    mk.on('click', (e) => {
+      // Stop the tap bubbling up to the sheet handle
+      L.DomEvent.stopPropagation(e);
       selectedId = s.id;
       buildList();
       document.querySelector(`.station-card[data-id="${s.id}"]`)
@@ -1004,6 +1034,8 @@ document.querySelectorAll('.fuel-tab').forEach(tab => {
     document.querySelectorAll('.fuel-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     activeFuel = tab.dataset.fuel;
+    // Update the grade pill on the map
+    document.getElementById('grade-pill-label').textContent = tab.textContent;
     applyFilters();
   });
 });
@@ -1018,21 +1050,30 @@ document.getElementById('search-clear').addEventListener('click', () => {
   applyFilters();
 });
 
-// ── Mobile bottom sheet: tap handle or peek to toggle, drag to open/close ──
+// ── Mobile bottom sheet ──────────────────────────────────────
 (() => {
   const sidebar = document.getElementById('sidebar');
   const handle  = document.getElementById('sheet-handle');
+  const closeBtn = document.getElementById('sheet-close');
   if (!handle) return;
 
-  // Tap toggles open/closed
+  // Tap on handle toggles open/closed (but not if tapping the X button)
   handle.addEventListener('click', (e) => {
-    // Only on touch-primary screens
+    if (e.target === closeBtn || closeBtn.contains(e.target)) return;
     if (window.matchMedia('(max-width: 680px)').matches) {
       sidebar.classList.toggle('open');
     }
   });
 
-  // Drag to resize/dismiss (mobile only)
+  // X button closes the sheet
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.remove('open');
+    });
+  }
+
+  // Drag to open/close
   let startY = null, startOpen = false;
   handle.addEventListener('touchstart', (e) => {
     if (!window.matchMedia('(max-width: 680px)').matches) return;
@@ -1053,10 +1094,10 @@ document.getElementById('search-clear').addEventListener('click', () => {
     sidebar.style.transition = '';
   });
 
-  // Also update the peek count to track the list
+  // Keep peek count in sync with station count
   const observer = new MutationObserver(() => {
     const count = document.getElementById('station-count')?.textContent || '';
-    document.getElementById('sheet-peek-count').textContent = count ? '· ' + count : '';
+    document.getElementById('sheet-peek-count').textContent = count ? ' · ' + count : '';
   });
   const target = document.getElementById('station-count');
   if (target) observer.observe(target, { childList: true, characterData: true, subtree: true });
