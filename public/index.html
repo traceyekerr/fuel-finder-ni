@@ -417,6 +417,9 @@
       #search-input { padding: 14px 10px; font-size: 15px; }
       #search-clear { padding: 8px; }
 
+      /* Hide legend and attribution on mobile — header covers that area */
+      #map-legend { display: none; }
+      .leaflet-top { display: none !important; }
       /* Controls below the mobile header bar */
       #locate-btn {
         bottom: 20px;
@@ -887,10 +890,13 @@ function buildMarkers() {
 
     mk.on('click', (e) => {
       L.DomEvent.stopPropagation(e);
-      // Set flag so the sheet handle click handler ignores the tap
       markerJustTapped = true;
       setTimeout(() => { markerJustTapped = false; }, 400);
       selectedId = s.id;
+      // Close the sheet on mobile so popup is visible
+      if (window.matchMedia('(max-width: 680px)').matches) {
+        document.getElementById('sidebar').classList.remove('open');
+      }
       buildList();
       document.querySelector(`.station-card[data-id="${s.id}"]`)
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
