@@ -283,7 +283,7 @@
     #grade-pill {
       display: none;
       position: absolute;
-      top: 44px; left: 14px;
+      top: 30px; left: 14px;
       background: rgba(13, 16, 25, 0.92);
       border: 1.5px solid var(--amber);
       color: var(--amber);
@@ -369,24 +369,22 @@
       #sidebar {
         position: absolute; left: 0; right: 0; bottom: 0;
         width: 100%; min-width: 0;
-        height: 55vh;
+        height: 75vh;
         max-height: 85vh;
         border-right: none;
         border-top: 1px solid var(--border);
         border-radius: 16px 16px 0 0;
-        transform: translateY(calc(100% - 60px));
+        transform: translateY(calc(100% - 20px));
         transition: transform .3s cubic-bezier(.4, 0, .2, 1);
         z-index: 900;
         box-shadow: 0 -4px 24px rgba(0,0,0,.4);
         padding-bottom: env(safe-area-inset-bottom);
       }
       #sidebar.open { transform: translateY(0); }
-      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 16px 10px; cursor: grab; user-select: none; flex-shrink: 0; }
-      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; }
-      #sheet-peek-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-      #sheet-peek { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-      #sheet-peek #sheet-peek-count { color: var(--amber); margin-left: 6px; }
-      #sheet-close { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 3px 12px; font-size: 14px; cursor: pointer; display: none; }
+      #sheet-handle { display: flex; flex-direction: column; align-items: center; padding: 8px 16px 6px; flex-shrink: 0; }
+      #sheet-drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; }
+      #sheet-peek-row { display: none; }
+      #sheet-close { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 4px 14px; font-size: 13px; cursor: pointer; margin-top: 4px; display: none; }
       #sidebar.open #sheet-close { display: block; }
       #sidebar.open #sheet-drag-bar { background: var(--amber); }
       #header { padding: 8px 14px 8px; }
@@ -395,8 +393,6 @@
       .logo-icon { width: 38px; height: 38px; }
       .logo-text { font-size: 20px; }
       .logo-sub { font-size: 10px; letter-spacing: 1.5px; }
-      /* Taller sheet so tabs + stats are always visible */
-      #sidebar { height: 75vh; }
       #fuel-tabs { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 10px 14px 12px; }
       #fuel-tabs::-webkit-scrollbar { display: none; }
       .fuel-tab { flex: 0 0 auto; padding: 10px 14px; scroll-snap-align: start; min-height: 40px; }
