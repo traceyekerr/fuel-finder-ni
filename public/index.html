@@ -600,7 +600,7 @@
       <button class="grade-opt" data-fuel="HVO">HVO</button>
     </div>
     <div id="map-legend">
-      <div class="legend-title">Price vs avg</div>
+      <div class="legend-title">Marker colours</div>
       <div class="legend-row"><div class="legend-dot" style="background:#10b981"></div>Cheapest</div>
       <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Average</div>
       <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div>Priciest</div>
@@ -938,17 +938,15 @@ function buildMarkers() {
 
     mk.bindPopup(buildPopup(s), { maxWidth: 280 });
 
-    // On mobile, pan so the marker is in the upper portion of the map
-    // so the popup has space below it to show fully
+    // On mobile, pan so the marker sits at 60% from top — popup appears above with room
     mk.on('popupopen', (e) => {
       if (window.matchMedia('(max-width: 680px)').matches) {
         setTimeout(() => {
           const markerPx = map.latLngToContainerPoint(e.popup.getLatLng());
           const mapH = map.getContainer().offsetHeight;
-          // Target: marker at 30% from top so popup shows below with room
-          const targetY = mapH * 0.30;
+          const targetY = mapH * 0.60;
           const deltaY = markerPx.y - targetY;
-          if (Math.abs(deltaY) > 40) {
+          if (Math.abs(deltaY) > 30) {
             map.panBy([0, deltaY], { animate: true, duration: 0.3 });
           }
         }, 50);
