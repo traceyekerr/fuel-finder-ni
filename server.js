@@ -30,11 +30,26 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
   console.warn('     Set these in Plesk Node.js environment variables or a .env file.');
 }
 
+const fs   = require('fs');
+const CACHE_FILE = path.join(__dirname, 'cache.json');
+
 // ── Caches ──────────────────────────────────────────────────
 let cachedToken    = null;
 let tokenExpiresAt = 0;
 let cachedData     = null;
 let cachedDataAt   = 0;
+
+// Load cache from disk on startup so data is instant even after a restart
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    cachedData   = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+    cachedDataAt = new Date(cachedData.fetchedAt).getTime();
+    const ageMin = Math.round((Date.now() - cachedDataAt) / 60000);
+    console.log(`📂  Loaded cache from disk (${ageMin} min old, ${cachedData.stations?.length} stations)`);
+  }
+} catch (e) {
+  console.warn('⚠️   Could not load disk cache:', e.message);
+}
 
 // ── HTTP helper ─────────────────────────────────────────────
 // NOTE: The Fuel Finder API sits behind AWS CloudFront/WAF, which
@@ -410,6 +425,13 @@ async function refreshData() {
       },
     };
     cachedDataAt = Date.now();
+
+    // Save to disk so data survives server restarts
+    try {
+      fs.writeFileSync(CACHE_FILE, JSON.stringify(cachedData));
+    } catch (e) {
+      console.warn('⚠️   Could not write disk cache:', e.message);
+    }
 
     console.log(`✅  Cache updated – ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
   } catch (err) {
