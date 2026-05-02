@@ -394,25 +394,10 @@
       #search-input { padding: 14px 10px; font-size: 15px; }
       #search-clear { padding: 8px; }
 
-      /* ── Map controls — stacked neatly above the 60px peek bar ── */
+      /* Locate button just above sheet peek */
       #locate-btn {
-        bottom: calc(160px + env(safe-area-inset-bottom));
+        bottom: calc(74px + env(safe-area-inset-bottom));
         right: 14px;
-      }
-      .leaflet-bottom.leaflet-right {
-        bottom: calc(74px + env(safe-area-inset-bottom)) !important;
-        right: 14px !important;
-      }
-      /* Attribution top-left, small and out of the way */
-      .leaflet-top.leaflet-left {
-        top: 14px !important;
-        left: 14px !important;
-      }
-      .leaflet-control-attribution {
-        font-size: 9px !important;
-        background: rgba(255,255,255,0.7) !important;
-        padding: 2px 6px !important;
-        border-radius: 4px !important;
       }
       /* Legend moves to top-right on mobile so it doesn't clash */
       #map-legend {
@@ -1135,36 +1120,25 @@ document.getElementById('search-clear').addEventListener('click', () => {
   applyFilters();
 });
 
-// ── Mobile bottom sheet ──────────────────────────────────────
+// ── Mobile bottom sheet — swipe up ONLY to open, X or swipe down to close ───
+// No tap-to-open on the handle — prevents marker taps opening the sheet.
 (() => {
-  const sidebar = document.getElementById('sidebar');
-  const handle  = document.getElementById('sheet-handle');
+  const sidebar  = document.getElementById('sidebar');
+  const handle   = document.getElementById('sheet-handle');
   const closeBtn = document.getElementById('sheet-close');
   if (!handle) return;
 
-  // Tap toggles open/closed — but NOT if a map popup is open or marker was just tapped
-  handle.addEventListener('click', (e) => {
-    if (e.target === closeBtn || closeBtn?.contains(e.target)) return;
-    if (markerJustTapped) return;
-    if (document.querySelector('.leaflet-popup')) return; // popup open = don't open sheet
-    if (window.matchMedia('(max-width: 680px)').matches) {
-      sidebar.classList.toggle('open');
-    }
+  // X button closes the sheet
+  closeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sidebar.classList.remove('open');
   });
 
-  // X button closes the sheet
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sidebar.classList.remove('open');
-    });
-  }
-
-  // Drag to open/close
+  // Swipe gesture only — no tap
   let startY = null, startOpen = false;
   handle.addEventListener('touchstart', (e) => {
     if (!window.matchMedia('(max-width: 680px)').matches) return;
-    startY = e.touches[0].clientY;
+    startY    = e.touches[0].clientY;
     startOpen = sidebar.classList.contains('open');
     sidebar.style.transition = 'none';
   }, { passive: true });
@@ -1172,8 +1146,8 @@ document.getElementById('search-clear').addEventListener('click', () => {
   handle.addEventListener('touchmove', (e) => {
     if (startY === null) return;
     const dy = e.touches[0].clientY - startY;
-    if (startOpen && dy > 20)   sidebar.classList.remove('open');
-    if (!startOpen && dy < -20) sidebar.classList.add('open');
+    if (startOpen && dy > 40)   sidebar.classList.remove('open');
+    if (!startOpen && dy < -40) sidebar.classList.add('open');
   }, { passive: true });
 
   handle.addEventListener('touchend', () => {
@@ -1199,6 +1173,14 @@ document.getElementById('locate-btn').addEventListener('click', () => {
   if (!navigator.geolocation) {
     alert("Your browser doesn't support location services.");
     return;
+  }
+
+  // Clear search when locating
+  const searchInput = document.getElementById('search-input');
+  if (searchInput.value) {
+    searchInput.value = '';
+    document.getElementById('search-clear').style.display = 'none';
+    applyFilters();
   }
 
   // If we already have the user's location, just pan back to it
