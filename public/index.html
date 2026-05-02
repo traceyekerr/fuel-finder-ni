@@ -279,23 +279,25 @@
 
     #mob-toggle { display: none; position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 14px; z-index: 600; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px; color: var(--text); cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; }
 
-    /* Grade pill on map */
+    /* Grade pill on map - top left below attribution on mobile */
     #grade-pill {
       display: none;
       position: absolute;
-      bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: var(--panel);
+      top: 44px; left: 14px;
+      background: rgba(13, 16, 25, 0.88);
       border: 1.5px solid var(--amber);
       color: var(--amber);
       font-family: 'Barlow Condensed', sans-serif;
       font-weight: 700; font-size: 14px; letter-spacing: .05em;
-      padding: 6px 16px; border-radius: 20px;
+      padding: 5px 14px; border-radius: 20px;
       z-index: 500;
       pointer-events: none;
       box-shadow: 0 2px 8px rgba(0,0,0,.3);
     }
     @media (max-width: 680px) {
-      #grade-pill { display: block; bottom: calc(70px + env(safe-area-inset-bottom)); }
+      #grade-pill { display: block; }
+      /* Hide zoom controls on mobile — pinch to zoom works fine */
+      .leaflet-control-zoom { display: none !important; }
     }
     #locate-btn {
       position: absolute; bottom: 100px; right: 14px; z-index: 500;
@@ -404,8 +406,8 @@
     <div id="sheet-handle">
       <div id="sheet-drag-bar"></div>
       <div id="sheet-peek-row">
-        <div id="sheet-peek">Stations<span id="sheet-peek-count"></span></div>
-        <button id="sheet-close" aria-label="Close">✕</button>
+        <span id="sheet-peek">Stations<span id="sheet-peek-count"></span></span>
+        <button id="sheet-close">✕ Close</button>
       </div>
     </div>
     <div id="header">
@@ -724,8 +726,9 @@ let clusterGroup;   // Leaflet.markercluster group
 let map;
 let currentBounds   = null;   // updated on map move/zoom
 let boundsFilter    = true;   // list follows the map view
-let lowestId        = null;   // cheapest station currently in the list
-let highestId       = null;   // priciest station currently in the list
+let lowestId        = null;
+let highestId       = null;
+let markerJustTapped = false;
 
 // ── Map init ──────────────────────────────────────────────
 function initMap() {
@@ -814,8 +817,10 @@ function buildMarkers() {
     });
 
     mk.on('click', (e) => {
-      // Stop the tap bubbling up to the sheet handle
       L.DomEvent.stopPropagation(e);
+      // Set flag so the sheet handle click handler ignores the tap
+      markerJustTapped = true;
+      setTimeout(() => { markerJustTapped = false; }, 400);
       selectedId = s.id;
       buildList();
       document.querySelector(`.station-card[data-id="${s.id}"]`)
@@ -1057,9 +1062,10 @@ document.getElementById('search-clear').addEventListener('click', () => {
   const closeBtn = document.getElementById('sheet-close');
   if (!handle) return;
 
-  // Tap on handle toggles open/closed (but not if tapping the X button)
+  // Tap toggles open/closed (but not if tapping the X button or just after a marker tap)
   handle.addEventListener('click', (e) => {
-    if (e.target === closeBtn || closeBtn.contains(e.target)) return;
+    if (e.target === closeBtn || closeBtn?.contains(e.target)) return;
+    if (markerJustTapped) return;
     if (window.matchMedia('(max-width: 680px)').matches) {
       sidebar.classList.toggle('open');
     }
