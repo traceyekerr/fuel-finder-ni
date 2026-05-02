@@ -79,13 +79,13 @@ function request(method, url, { headers = {}, body } = {}) {
       path:     u.pathname + u.search,
       method,
       headers:  mergedHeaders,
-      timeout:  20000,
+      timeout:  45000,
     }, res => {
       let raw = '';
       res.on('data', d => raw += d);
       res.on('end', () => resolve({ status: res.statusCode, body: raw, headers: res.headers }));
     });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out after 20s')); });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out after 45s')); });
     req.on('error', reject);
     if (body) req.write(body);
     req.end();
