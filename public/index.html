@@ -335,18 +335,25 @@
       #search-input { padding: 14px 10px; font-size: 15px; }
       #search-clear { padding: 8px; }
 
-      /* ── Map controls — all positioned above the 60px peek bar ── */
+      /* ── Map controls — stacked neatly above the 60px peek bar ── */
       #locate-btn {
-        bottom: calc(220px + env(safe-area-inset-bottom));
+        bottom: calc(160px + env(safe-area-inset-bottom));
         right: 14px;
       }
       .leaflet-bottom.leaflet-right {
         bottom: calc(74px + env(safe-area-inset-bottom)) !important;
         right: 14px !important;
       }
-      /* Attribution to bottom-left, clear of controls */
-      .leaflet-bottom.leaflet-left {
-        bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+      /* Attribution top-left, small and out of the way */
+      .leaflet-top.leaflet-left {
+        top: 14px !important;
+        left: 14px !important;
+      }
+      .leaflet-control-attribution {
+        font-size: 9px !important;
+        background: rgba(255,255,255,0.7) !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
       }
       /* Legend moves to top-right on mobile so it doesn't clash */
       #map-legend {
@@ -690,14 +697,14 @@ let highestId       = null;   // priciest station currently in the list
 function initMap() {
   const isMobile = window.matchMedia('(max-width: 680px)').matches;
   map = L.map('map', {
-    center: [54.72, -6.7],
-    zoom:   isMobile ? 8.5 : 9,
+    center: [54.6, -6.7],
+    zoom:   isMobile ? 8 : 9,
     zoomControl: true,
     tap: true,
     attributionControl: true,
   });
-  // Move attribution to bottom-left so it doesn't sit between controls
-  map.attributionControl.setPosition('bottomleft');
+  // Move attribution to top-left
+  map.attributionControl.setPosition('topleft');
   // Carto "Voyager" – coloured, readable streets/places without being too bright
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap © CARTO', subdomains: 'abcd', maxZoom: 19
