@@ -1214,7 +1214,7 @@ document.getElementById('search-clear').addEventListener('click', () => {
 });
 
 // ── Mobile bottom sheet — opened ONLY by the list button, closed by X ────────
-(() => {
+document.addEventListener('DOMContentLoaded', () => {
   const sidebar  = document.getElementById('sidebar');
   const closeBtn = document.getElementById('sheet-close');
   const listBtn  = document.getElementById('list-btn');
@@ -1233,19 +1233,23 @@ document.getElementById('search-clear').addEventListener('click', () => {
 
   // Keep list button count and peek count in sync
   function updateListBtn() {
-    const count = document.getElementById('station-count')?.textContent || '';
-    document.getElementById('sheet-peek-count').textContent = count ? ' · ' + count : '';
+    const countEl = document.getElementById('station-count');
+    const listBtnCount = document.getElementById('list-btn-count');
+    const sheetPeekCount = document.getElementById('sheet-peek-count');
+    if (!countEl || !listBtnCount) return;
+    const count = countEl.textContent || '';
+    if (sheetPeekCount) sheetPeekCount.textContent = count ? ' · ' + count : '';
     const num = count.match(/\d+/)?.[0];
-    document.getElementById('list-btn-count').textContent = num ? `${num} Stations` : 'Stations';
+    listBtnCount.textContent = num ? `${num} Stations` : 'Stations';
   }
 
   const observer = new MutationObserver(updateListBtn);
   const target = document.getElementById('station-count');
   if (target) {
     observer.observe(target, { childList: true, characterData: true, subtree: true });
-    updateListBtn(); // run immediately in case content already set
+    updateListBtn();
   }
-})();
+}); // end DOMContentLoaded
 
 // ── Locate me: pan to user's current position and show a marker ──
 let userMarker  = null;
