@@ -330,7 +330,7 @@
       .logo-text { font-size: 20px; }
       .logo-sub { font-size: 10px; letter-spacing: 1.5px; }
       /* Taller sheet so tabs + stats are always visible */
-      #sidebar { height: 70vh; }
+      #sidebar { height: 75vh; }
       #fuel-tabs { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 10px 14px 12px; }
       #fuel-tabs::-webkit-scrollbar { display: none; }
       .fuel-tab { flex: 0 0 auto; padding: 10px 14px; scroll-snap-align: start; min-height: 40px; }
@@ -457,7 +457,7 @@
         <div class="pulse-dot" id="pulse"></div>
         <span id="data-label">Connecting…</span>
       </div>
-      <button id="refresh-btn">↻ Refresh</button>
+      <button id="refresh-btn">↻ Reload</button>
     </div>
   </aside>
 
@@ -785,16 +785,29 @@ function buildMarkers() {
       zIndexOffset: pc === 'cheap' ? 1000 : pc === 'mid' ? 500 : 0,
     });
 
-    // Clicking a marker: open popup + highlight in list, but DO NOT zoom
-    // and do not hide other stations.
     mk.on('click', () => {
       selectedId = s.id;
       buildList();
-      // Scroll the selected card into view in the sidebar
       document.querySelector(`.station-card[data-id="${s.id}"]`)
         ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
+
     mk.bindPopup(buildPopup(s), { maxWidth: 280 });
+
+    // On mobile, pan map down after popup opens so it's fully visible
+    mk.on('popupopen', (e) => {
+      if (window.matchMedia('(max-width: 680px)').matches) {
+        setTimeout(() => {
+          const px = map.project(e.popup.getLatLng(), map.getZoom());
+          // Shift map up by popup height + marker height so popup shows above the sheet
+          const popupHeight = e.popup._container
+            ? e.popup._container.offsetHeight + 60
+            : 200;
+          px.y -= popupHeight;
+          map.panTo(map.unproject(px, map.getZoom()), { animate: true });
+        }, 50);
+      }
+    });
 
     markers[s.id] = mk;
     toAdd.push(mk);
@@ -1102,7 +1115,7 @@ document.getElementById('locate-btn').addEventListener('click', () => {
   );
 });
 
-document.getElementById('refresh-btn').addEventListener('click', () => loadPrices(true));
+document.getElementById('refresh-btn').addEventListener('click', () => loadPrices(false));
 
 // ── Boot ──────────────────────────────────────────────────
 initMap();
