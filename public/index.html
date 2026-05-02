@@ -279,6 +279,21 @@
 
     #mob-toggle { display: none; position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 14px; z-index: 600; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px; color: var(--text); cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 14px; }
 
+    /* Mobile attribution bar */
+    #mobile-attribution {
+      display: none;
+      position: absolute;
+      bottom: calc(44px + env(safe-area-inset-bottom));
+      left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: #374151;
+      background: rgba(255,255,255,0.8);
+      padding: 2px 8px; border-radius: 4px;
+      white-space: nowrap; z-index: 500;
+      pointer-events: auto;
+    }
+    #mobile-attribution a { color: #1e40af; }
+    @media (max-width: 680px) { #mobile-attribution { display: block; } }
+
     /* ── Mobile top header bar ── */
     #mobile-header {
       display: none;
@@ -417,19 +432,26 @@
       #search-input { padding: 14px 10px; font-size: 15px; }
       #search-clear { padding: 8px; }
 
-      /* Buttons above nav bar */
-      #locate-btn { bottom: calc(28px + env(safe-area-inset-bottom)); left: 14px; right: auto; }
-      #list-btn { display: flex; bottom: calc(28px + env(safe-area-inset-bottom)); right: 14px; }
+      /* Buttons — higher up, safely above nav bar */
+      #locate-btn { bottom: calc(44px + env(safe-area-inset-bottom)); left: 14px; right: auto; }
+      #list-btn { display: flex; bottom: calc(44px + env(safe-area-inset-bottom)); right: 14px; }
 
       /* Zoom controls hidden — pinch to zoom */
       .leaflet-control-zoom { display: none !important; }
 
-      /* Attribution — bottom left, above buttons */
-      .leaflet-bottom.leaflet-left { bottom: calc(82px + env(safe-area-inset-bottom)) !important; left: 0 !important; }
-      .leaflet-control-attribution { font-size: 9px !important; }
+      /* Attribution — bottom centre */
+      .leaflet-bottom.leaflet-left { display: none !important; }
+      .leaflet-bottom.leaflet-right { display: none !important; }
+      .leaflet-top.leaflet-left { display: none !important; }
+      .leaflet-top.leaflet-right { display: none !important; }
 
-      /* Legend — bottom left above attribution */
-      #map-legend { display: block; bottom: calc(116px + env(safe-area-inset-bottom)); left: 14px; right: auto; padding: 6px 10px; font-size: 11px; }
+      /* Legend — bottom left, just above buttons, no gap */
+      #map-legend {
+        display: block;
+        bottom: calc(102px + env(safe-area-inset-bottom));
+        left: 14px; right: auto;
+        padding: 6px 10px; font-size: 11px;
+      }
       #map-legend .legend-title { font-size: 10px; margin-bottom: 4px; }
     }
 
@@ -583,6 +605,8 @@
       <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Average</div>
       <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div>Priciest</div>
     </div>
+    <!-- Mobile attribution at bottom centre -->
+    <div id="mobile-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com/" target="_blank">CARTO</a></div>
   </div>
 </div>
 
@@ -914,17 +938,19 @@ function buildMarkers() {
 
     mk.bindPopup(buildPopup(s), { maxWidth: 280 });
 
-    // On mobile, pan map down after popup opens so it's fully visible
+    // On mobile, pan so the marker is in the upper portion of the map
+    // so the popup has space below it to show fully
     mk.on('popupopen', (e) => {
       if (window.matchMedia('(max-width: 680px)').matches) {
         setTimeout(() => {
-          const px = map.project(e.popup.getLatLng(), map.getZoom());
-          // Shift map up by popup height + marker height so popup shows above the sheet
-          const popupHeight = e.popup._container
-            ? e.popup._container.offsetHeight + 60
-            : 200;
-          px.y -= popupHeight;
-          map.panTo(map.unproject(px, map.getZoom()), { animate: true });
+          const markerPx = map.latLngToContainerPoint(e.popup.getLatLng());
+          const mapH = map.getContainer().offsetHeight;
+          // Target: marker at 30% from top so popup shows below with room
+          const targetY = mapH * 0.30;
+          const deltaY = markerPx.y - targetY;
+          if (Math.abs(deltaY) > 40) {
+            map.panBy([0, deltaY], { animate: true, duration: 0.3 });
+          }
         }, 50);
       }
     });
