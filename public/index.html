@@ -323,8 +323,14 @@
       #sheet-handle::before { content: ''; width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 8px; }
       #sheet-peek { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
       #sheet-peek #sheet-peek-count { color: var(--amber); margin-left: 6px; }
-      #header { padding: 12px 18px 12px; }
+      #header { padding: 8px 14px 8px; }
       #mob-toggle { display: none; }
+      /* Compact logo on mobile so fuel tabs stay visible */
+      .logo-icon { width: 38px; height: 38px; }
+      .logo-text { font-size: 20px; }
+      .logo-sub { font-size: 10px; letter-spacing: 1.5px; }
+      /* Taller sheet so tabs + stats are always visible */
+      #sidebar { height: 70vh; }
       #fuel-tabs { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 10px 14px 12px; }
       #fuel-tabs::-webkit-scrollbar { display: none; }
       .fuel-tab { flex: 0 0 auto; padding: 10px 14px; scroll-snap-align: start; min-height: 40px; }
@@ -697,13 +703,12 @@ let highestId       = null;   // priciest station currently in the list
 function initMap() {
   const isMobile = window.matchMedia('(max-width: 680px)').matches;
   map = L.map('map', {
-    center: [54.6, -6.7],
+    center: [54.45, -6.7],
     zoom:   isMobile ? 8 : 9,
     zoomControl: true,
     tap: true,
     attributionControl: true,
   });
-  // Move attribution to top-left
   map.attributionControl.setPosition('topleft');
   // Carto "Voyager" – coloured, readable streets/places without being too bright
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
