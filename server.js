@@ -35,14 +35,21 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 const mailTransporter = (
   process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
 ) ? nodemailer.createTransport({
-  host:   process.env.SMTP_HOST,
-  port:   parseInt(process.env.SMTP_PORT || '587', 10),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth:   { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  host:              process.env.SMTP_HOST,
+  port:              parseInt(process.env.SMTP_PORT || '587', 10),
+  secure:            process.env.SMTP_SECURE === 'true',
+  auth:              { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  connectionTimeout: 10000,
+  greetingTimeout:   5000,
+  socketTimeout:     10000,
 }) : null;
 
 if (mailTransporter) {
   console.log(`📧  Mail transporter ready (${process.env.SMTP_HOST})`);
+  mailTransporter.verify(err => {
+    if (err) console.error('📧  SMTP verify failed:', err.message);
+    else     console.log('📧  SMTP connection verified ✓');
+  });
 } else {
   console.log('📧  No SMTP config — contact form submissions will be logged to console only.');
 }
@@ -468,31 +475,30 @@ app.get('/api/status', (req, res) => {
 });
 
 app.post('/api/contact', async (req, res) => {
-  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-  if (isRateLimited(ip)) {
-    return res.status(429).json({ error: 'Too many submissions — please try again later.' });
-  }
+  try {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+    if (isRateLimited(ip)) {
+      return res.status(429).json({ error: 'Too many submissions — please try again later.' });
+    }
 
-  const { name, email, message, honeypot } = req.body;
+    const { name, email, message, honeypot } = req.body || {};
 
-  // Silently discard bot submissions (honeypot field should always be empty)
-  if (honeypot) return res.json({ ok: true });
+    if (honeypot) return res.json({ ok: true });
 
-  if (!name?.trim() || !email?.trim() || !message?.trim()) {
-    return res.status(400).json({ error: 'Please fill in all fields.' });
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'Please enter a valid email address.' });
-  }
-  if (message.length > 2000) {
-    return res.status(400).json({ error: 'Message must be under 2000 characters.' });
-  }
+    if (!name?.trim() || !email?.trim() || !message?.trim()) {
+      return res.status(400).json({ error: 'Please fill in all fields.' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+    if (message.length > 2000) {
+      return res.status(400).json({ error: 'Message must be under 2000 characters.' });
+    }
 
-  const subject = `Fuel Finder NI contact: ${name.trim()}`;
-  const body    = `Name:    ${name.trim()}\nEmail:   ${email.trim()}\n\n${message.trim()}`;
+    const subject = `Fuel Finder NI contact: ${name.trim()}`;
+    const body    = `Name:    ${name.trim()}\nEmail:   ${email.trim()}\n\n${message.trim()}`;
 
-  if (mailTransporter) {
-    try {
+    if (mailTransporter) {
       await mailTransporter.sendMail({
         from:    `"Fuel Finder NI" <${process.env.SMTP_USER}>`,
         to:      process.env.CONTACT_EMAIL_TO || process.env.SMTP_USER,
@@ -500,15 +506,18 @@ app.post('/api/contact', async (req, res) => {
         subject,
         text:    body,
       });
-    } catch (err) {
-      console.error('Contact form mail error:', err.message);
-      return res.status(500).json({ error: 'Could not send your message — please try again later.' });
+    } else {
+      console.log(`\n[Contact form]\n${body}\n`);
     }
-  } else {
-    console.log(`\n[Contact form]\n${body}\n`);
-  }
 
-  res.json({ ok: true });
+    res.json({ ok: true });
+
+  } catch (err) {
+    console.error('Contact form error:', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Could not send your message — please try again later.' });
+    }
+  }
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
