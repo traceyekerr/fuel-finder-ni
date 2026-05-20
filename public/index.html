@@ -480,9 +480,52 @@
       #grade-pill { display: none !important; }
       #grade-picker { display: none !important; }
     }
+
+    /* ── Desktop-only site description in header ── */
+    .header-desc {
+      font-size: 11.5px; color: var(--muted); line-height: 1.55;
+      margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .header-desc a { color: var(--muted); text-decoration: none; }
+    .header-desc a:hover { color: var(--dim); text-decoration: underline; }
+
+    /* ── Footer nav links ── */
+    #footer { flex-direction: column; gap: 6px; padding-bottom: 8px; }
+    .footer-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .footer-links { display: flex; gap: 8px; align-items: center; font-size: 11px; }
+    .footer-links a { color: var(--muted); text-decoration: none; transition: color .15s; }
+    .footer-links a:hover { color: var(--amber); }
+    .footer-links .sep { color: var(--border); }
   </style>
 </head>
 <body>
+<noscript>
+  <div style="max-width:760px;margin:48px auto;padding:24px 28px;font-family:sans-serif;color:#e2e8f0;background:#0c0e14;border-radius:12px">
+    <h1 style="font-size:24px;color:#f59e0b;margin-bottom:12px">Fuel Finder NI – Live Fuel Prices in Northern Ireland</h1>
+    <p style="font-size:15px;line-height:1.6;margin-bottom:16px">
+      Fuel Finder NI displays live petrol and diesel prices at every registered forecourt in
+      Northern Ireland, updated every 15 minutes from the GOV.UK Fuel Finder API.
+      Compare prices across 450+ stations in Antrim, Armagh, Down, Fermanagh, Londonderry and Tyrone.
+    </p>
+    <h2 style="font-size:17px;margin-bottom:10px">Fuel grades available</h2>
+    <ul style="font-size:14px;line-height:1.8;padding-left:20px;margin-bottom:16px">
+      <li><strong>E10 Unleaded</strong> – Standard UK petrol since September 2021. Contains up to 10% renewable ethanol. Compatible with most petrol cars made after 2011.</li>
+      <li><strong>E5 Super Unleaded</strong> – Premium petrol with up to 5% ethanol and higher octane. Required for some older and performance vehicles.</li>
+      <li><strong>B7 Diesel</strong> – Standard diesel containing up to 7% biodiesel. Compatible with all diesel vehicles.</li>
+      <li><strong>B7 Premium Diesel</strong> – Standard diesel with fuel-system cleaning additives. Sold as BP Ultimate Diesel, Shell V-Power Diesel, etc.</li>
+      <li><strong>B10 Diesel</strong> – Higher-biodiesel diesel approved for most post-2016 diesel vehicles. Slightly lower carbon footprint than B7.</li>
+      <li><strong>HVO (Hydrotreated Vegetable Oil)</strong> – Renewable diesel with up to 90% lower lifecycle CO₂ than fossil diesel. Currently limited availability in NI.</li>
+    </ul>
+    <p style="font-size:13px;color:#64748b">
+      This site requires JavaScript to display the interactive map and live prices.
+      Please enable JavaScript in your browser to use Fuel Finder NI.
+      &nbsp;|&nbsp;<a href="/about.html" style="color:#f59e0b">About</a>
+      &nbsp;|&nbsp;<a href="/privacy.html" style="color:#f59e0b">Privacy Policy</a>
+    </p>
+  </div>
+</noscript>
+
 <div id="app">
   <aside id="sidebar">
     <div id="sheet-handle">
@@ -511,6 +554,11 @@
           <div class="logo-sub">LIVE PRICES · GOV.UK DATA</div>
         </div>
       </div>
+      <p class="header-desc">
+        Live petrol and diesel prices at forecourts across all six counties of Northern Ireland,
+        updated every 15 minutes from the GOV.UK Fuel Finder API.
+        <a href="/about.html">Learn more →</a>
+      </p>
     </div>
 
     <div id="search-wrap">
@@ -559,11 +607,22 @@
     <div id="station-list"></div>
 
     <div id="footer">
-      <div class="data-badge">
-        <div class="pulse-dot" id="pulse"></div>
-        <span id="data-label">Connecting…</span>
+      <div class="footer-top">
+        <div class="data-badge">
+          <div class="pulse-dot" id="pulse"></div>
+          <span id="data-label">Connecting…</span>
+        </div>
+        <button id="refresh-btn">↻ Reload</button>
       </div>
-      <button id="refresh-btn">↻ Reload</button>
+      <div class="footer-links">
+        <a href="/about.html">About</a>
+        <span class="sep">·</span>
+        <a href="/privacy.html">Privacy</a>
+        <span class="sep">·</span>
+        <a href="/contact.html">Contact</a>
+        <span class="sep">·</span>
+        <a href="https://www.gov.uk/government/collections/fuel-finder" rel="noopener" target="_blank">Data source</a>
+      </div>
     </div>
   </aside>
 
@@ -843,7 +902,7 @@ let markerJustTapped = false;
 function initMap() {
   const isMobile = window.matchMedia('(max-width: 680px)').matches;
   map = L.map('map', {
-    center: [54.45, -6.7],
+    center: [54.65, -6.7],
     zoom:   isMobile ? 8 : 9,
     zoomControl: true,
     tap: true,

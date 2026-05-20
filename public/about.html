@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Fuel Finder NI – Live Petrol &amp; Diesel Prices</title>
+  <meta name="description" content="Fuel Finder NI shows live petrol and diesel prices at every forecourt in Northern Ireland, updated every 15 minutes from the GOV.UK Fuel Finder API. Free to use, independent, and covering all six counties." />
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2504852143614772" crossorigin="anonymous"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8NWXKV75ZV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-8NWXKV75ZV');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0e14; --panel: #13161f; --panel2: #1a1e2b;
+      --border: #252a3a; --amber: #f59e0b; --green: #10b981;
+      --text: #e2e8f0; --muted: #64748b; --dim: #94a3b8;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.65; }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ── */
+    .site-header {
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+    }
+    .site-logo {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 900;
+      font-size: 22px; color: var(--amber); text-decoration: none; letter-spacing: .5px;
+    }
+    .site-logo span { color: #fff; }
+    .back-link { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .back-link:hover { color: var(--amber); }
+
+    /* ── Content ── */
+    .page-wrap { max-width: 720px; margin: 0 auto; padding: 40px 24px 60px; }
+    h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 32px; color: var(--amber); margin-bottom: 12px; line-height: 1.1; }
+    h2 { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; color: var(--text); margin: 36px 0 12px; letter-spacing: .02em; }
+    p { color: var(--dim); margin-bottom: 14px; }
+    p strong { color: var(--text); }
+    ul, ol { padding-left: 20px; margin-bottom: 14px; }
+    li { color: var(--dim); margin-bottom: 8px; }
+    li strong { color: var(--text); }
+
+    .intro-lead { font-size: 16px; color: var(--text); }
+
+    /* ── Fuel type cards ── */
+    .fuel-grid { display: grid; gap: 12px; margin-bottom: 14px; }
+    @media (min-width: 560px) { .fuel-grid { grid-template-columns: 1fr 1fr; } }
+    .fuel-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .fuel-card-name {
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 15px; color: var(--amber); margin-bottom: 4px; letter-spacing: .03em;
+    }
+    .fuel-card p { font-size: 13px; margin: 0; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; padding: 0; counter-reset: step; }
+    .steps li {
+      counter-increment: step;
+      padding: 12px 14px 12px 52px; position: relative;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 10px;
+      color: var(--dim); font-size: 14px;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      width: 26px; height: 26px; border-radius: 6px;
+      background: #f59e0b20; color: var(--amber);
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .steps li strong { color: var(--text); }
+
+    /* ── FAQ ── */
+    .faq-item { border-top: 1px solid var(--border); padding: 16px 0; }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 500; color: var(--text); margin-bottom: 6px; font-size: 15px; }
+    .faq-a { color: var(--dim); font-size: 14px; margin: 0; }
+
+    /* ── Data source badge ── */
+    .source-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--dim);
+      margin-bottom: 14px;
+    }
+    .source-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    /* ── Footer ── */
+    .page-footer {
+      border-top: 1px solid var(--border); padding: 20px 24px;
+      text-align: center; font-size: 12px; color: var(--muted);
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    }
+    .page-footer a { color: var(--muted); }
+    .page-footer a:hover { color: var(--amber); }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="site-logo" href="/">FUEL<span>FINDER</span> · NI</a>
+  <a class="back-link" href="/">← Back to live map</a>
+</header>
+
+<main class="page-wrap">
+
+  <h1>About Fuel Finder NI</h1>
+  <p class="intro-lead">
+    Fuel Finder NI is a free, independent tool that shows live petrol and diesel prices at every
+    registered forecourt in Northern Ireland — updated every 15 minutes directly from official
+    government data.
+  </p>
+  <p>
+    With over 450 stations mapped across all six counties, you can see at a glance where the cheapest
+    fuel near you is, compare prices across brands and locations, and filter by fuel grade.
+    No account needed, no app to download.
+  </p>
+
+  <div class="source-badge">
+    <div class="source-dot"></div>
+    Data sourced from the <strong style="color:var(--text);margin:0 4px">GOV.UK Fuel Finder API</strong> — official UK government fuel price data
+  </div>
+
+  <h2>How to use the map</h2>
+  <ol class="steps">
+    <li><strong>Choose a fuel grade</strong> using the tabs on the left (desktop) or the grade selector at the top (mobile). Diesel is selected by default.</li>
+    <li><strong>Browse the map</strong> — markers are colour-coded green (cheapest), amber (mid-range) and red (priciest) relative to other stations currently in view.</li>
+    <li><strong>Tap or click any marker</strong> to see full details: all fuel prices at that station, opening hours, and available facilities.</li>
+    <li><strong>Use the sidebar list</strong> (tap the Stations button on mobile) to see stations ranked cheapest-first. Tap "All NI" to compare across the whole region rather than just your current map view.</li>
+    <li><strong>Tap the lowest or highest price</strong> in the stats bar to jump straight to that station on the map.</li>
+    <li><strong>Use My Location</strong> to pan the map to where you are and see nearby stations in the list.</li>
+  </ol>
+
+  <h2>Fuel grades explained</h2>
+  <p>Northern Ireland forecourts report up to six fuel grades through the GOV.UK Fuel Finder. Here is what each one means:</p>
+
+  <div class="fuel-grid">
+    <div class="fuel-card">
+      <div class="fuel-card-name">E10 Unleaded</div>
+      <p>Standard UK petrol, containing up to 10% renewable ethanol. Compatible with most petrol cars made after 2011. Became the default UK grade in September 2021.</p>
+    </div>
+    <div class="fuel-card">
+      <div class="fuel-card-name">E5 Super Unleaded</div>
+      <p>Premium petrol with a higher octane rating and no more than 5% ethanol. Required for some older and classic vehicles. Typically 5–10p per litre more expensive than E10.</p>
+    </div>
+    <div class="fuel-card">
+      <div class="fuel-card-name">B7 Diesel</div>
+      <p>Standard diesel containing up to 7% biodiesel. Compatible with all diesel vehicles and the most widely available diesel grade in Northern Ireland.</p>
+    </div>
+    <div class="fuel-card">
+      <div class="fuel-card-name">B7 Premium Diesel</div>
+      <p>Standard diesel with added detergents to clean fuel injectors and improve efficiency. Sold as BP Ultimate Diesel, Shell V-Power Diesel, and similar branded grades.</p>
+    </div>
+    <div class="fuel-card">
+      <div class="fuel-card-name">B10 Diesel</div>
+      <p>Diesel with up to 10% biodiesel content. Approved for use in most diesel vehicles manufactured after 2016. Slightly lower carbon footprint than standard B7.</p>
+    </div>
+    <div class="fuel-card">
+      <div class="fuel-card-name">HVO (Renewable Diesel)</div>
+      <p>Hydrotreated Vegetable Oil — a drop-in replacement for fossil diesel made from waste vegetable oils. Up to 90% lower lifecycle CO₂ emissions. Currently available at a small number of NI forecourts.</p>
+    </div>
+  </div>
+
+  <h2>About the data</h2>
+  <p>
+    Prices are sourced from the
+    <a href="https://www.gov.uk/government/collections/fuel-finder" rel="noopener" target="_blank">GOV.UK Fuel Finder API</a>,
+    which collects reported prices directly from UK fuel retailers. Forecourts are legally required to
+    update their prices within 30 minutes of any change.
+  </p>
+  <p>
+    Fuel Finder NI fetches fresh data every 15 minutes and caches it server-side, so the prices you
+    see are typically no more than 15–30 minutes old. The timestamp at the bottom of the sidebar shows
+    exactly when the data was last fetched. Individual station prices also show when that specific
+    price was last updated.
+  </p>
+  <p>
+    Only Northern Ireland stations are shown — identified by BT postcodes and country designation in
+    the API. Permanently or temporarily closed stations are automatically excluded.
+  </p>
+
+  <h2>Frequently asked questions</h2>
+
+  <div class="faq-item">
+    <p class="faq-q">Why does the same station sometimes show different prices on different days?</p>
+    <p class="faq-a">Fuel prices change frequently — often daily — based on wholesale costs, competition, and local market conditions. Some stations update prices multiple times a day. The price you see always reflects the latest reported price from that forecourt.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Why are some stations missing a fuel grade?</p>
+    <p class="faq-a">Not all stations sell every grade. Niche grades like HVO and B10 are currently available at only a handful of forecourts in Northern Ireland. If a station doesn't stock the selected grade, it won't appear on the map for that filter.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Are supermarket fuel prices included?</p>
+    <p class="faq-a">Yes — supermarket stations such as Tesco, Asda, Morrisons and Sainsbury's are required to participate in the GOV.UK Fuel Finder scheme and their prices are included in the data.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Does Fuel Finder NI work on mobile?</p>
+    <p class="faq-a">Yes. The site is fully responsive and optimised for use on smartphones. On mobile, the map fills the screen and a bottom sheet slides up to show the station list. Tap the Stations button or any map marker to explore prices.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Who runs Fuel Finder NI?</p>
+    <p class="faq-a">Fuel Finder NI is an independent website. It is not affiliated with the UK government, the Fuel Finder scheme, or any fuel retailer. It uses the GOV.UK Fuel Finder open data API to present public price data in a convenient format for Northern Ireland drivers.</p>
+  </div>
+
+  <h2>Contact</h2>
+  <p>
+    If you have a question, spot an error, or want to get in touch,
+    use the <a href="/contact.html">contact form</a>.
+  </p>
+
+</main>
+
+<footer class="page-footer">
+  <a href="/">Live map</a>
+  <a href="/about.html">About</a>
+  <a href="/privacy.html">Privacy Policy</a>
+  <a href="/contact.html">Contact</a>
+  <a href="https://www.gov.uk/government/collections/fuel-finder" rel="noopener" target="_blank">GOV.UK Fuel Finder</a>
+</footer>
+
+</body>
+</html>

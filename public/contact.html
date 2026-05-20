@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact – Fuel Finder NI</title>
+  <meta name="description" content="Get in touch with Fuel Finder NI. Report an error, ask a question, or send us a message." />
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2504852143614772" crossorigin="anonymous"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8NWXKV75ZV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-8NWXKV75ZV');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0e14; --panel: #13161f; --panel2: #1a1e2b;
+      --border: #252a3a; --amber: #f59e0b; --green: #10b981;
+      --red: #ef4444; --text: #e2e8f0; --muted: #64748b; --dim: #94a3b8;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.65; min-height: 100vh; }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .site-header {
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .site-logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; color: var(--amber); text-decoration: none; letter-spacing: .5px; }
+    .site-logo span { color: #fff; }
+    .back-link { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .back-link:hover { color: var(--amber); }
+
+    .page-wrap { max-width: 560px; margin: 0 auto; padding: 40px 24px 60px; }
+    h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 32px; color: var(--amber); margin-bottom: 10px; line-height: 1.1; }
+    .page-intro { color: var(--dim); margin-bottom: 28px; font-size: 15px; }
+
+    /* ── Form ── */
+    .contact-form { display: flex; flex-direction: column; gap: 18px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: .02em; }
+    .field label .req { color: var(--amber); margin-left: 2px; }
+
+    .field input,
+    .field textarea {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px;
+      padding: 12px 14px; outline: none;
+      transition: border-color .2s;
+      width: 100%;
+    }
+    .field input:focus,
+    .field textarea:focus { border-color: var(--amber); }
+    .field input::placeholder,
+    .field textarea::placeholder { color: var(--muted); }
+    .field textarea { resize: vertical; min-height: 140px; line-height: 1.55; }
+
+    .char-count { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
+    .char-count.over { color: var(--red); }
+
+    /* Honeypot — visually hidden, confuses bots */
+    .hp-field { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+
+    .submit-btn {
+      background: var(--amber); color: #000; border: none; border-radius: 10px;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px;
+      letter-spacing: .06em; padding: 14px 28px; cursor: pointer;
+      transition: opacity .15s, background .15s;
+      align-self: flex-start;
+    }
+    .submit-btn:hover:not(:disabled) { background: #fbbf24; }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Status messages ── */
+    .status-msg {
+      display: none; border-radius: 10px; padding: 14px 16px; font-size: 14px; line-height: 1.5;
+    }
+    .status-msg.success { display: block; background: #10b98118; border: 1px solid #10b98140; color: #6ee7b7; }
+    .status-msg.error   { display: block; background: #ef444418; border: 1px solid #ef444440; color: #fca5a5; }
+
+    /* ── Footer ── */
+    .page-footer { border-top: 1px solid var(--border); padding: 20px 24px; text-align: center; font-size: 12px; color: var(--muted); display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .page-footer a { color: var(--muted); }
+    .page-footer a:hover { color: var(--amber); }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="site-logo" href="/">FUEL<span>FINDER</span> · NI</a>
+  <a class="back-link" href="/">← Back to live map</a>
+</header>
+
+<main class="page-wrap">
+  <h1>Contact</h1>
+  <p class="page-intro">Got a question, spotted an error, or just want to get in touch? Fill in the form below and we'll get back to you.</p>
+
+  <div id="status-msg" class="status-msg" role="alert"></div>
+
+  <form class="contact-form" id="contact-form" novalidate>
+
+    <!-- Honeypot — must stay empty -->
+    <div class="hp-field" aria-hidden="true">
+      <input type="text" name="honeypot" tabindex="-1" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label for="name">Name <span class="req">*</span></label>
+      <input type="text" id="name" name="name" placeholder="Your name" autocomplete="name" required />
+    </div>
+
+    <div class="field">
+      <label for="email">Email address <span class="req">*</span></label>
+      <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="email" required />
+    </div>
+
+    <div class="field">
+      <label for="message">Message <span class="req">*</span></label>
+      <textarea id="message" name="message" placeholder="Write your message here…" maxlength="2000" required></textarea>
+      <div class="char-count" id="char-count">0 / 2000</div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submit-btn">Send message</button>
+  </form>
+</main>
+
+<footer class="page-footer">
+  <a href="/">Live map</a>
+  <a href="/about.html">About</a>
+  <a href="/privacy.html">Privacy Policy</a>
+  <a href="/contact.html">Contact</a>
+</footer>
+
+<script>
+  const form       = document.getElementById('contact-form');
+  const submitBtn  = document.getElementById('submit-btn');
+  const statusMsg  = document.getElementById('status-msg');
+  const messageEl  = document.getElementById('message');
+  const charCount  = document.getElementById('char-count');
+
+  messageEl.addEventListener('input', () => {
+    const len = messageEl.value.length;
+    charCount.textContent = `${len} / 2000`;
+    charCount.classList.toggle('over', len > 2000);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusMsg.className = 'status-msg';
+    statusMsg.textContent = '';
+
+    const name     = document.getElementById('name').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const message  = messageEl.value.trim();
+    const honeypot = form.querySelector('[name="honeypot"]').value;
+
+    if (!name || !email || !message) {
+      statusMsg.className = 'status-msg error';
+      statusMsg.textContent = 'Please fill in all fields.';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    try {
+      const res  = await fetch('/api/contact', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name, email, message, honeypot }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Something went wrong.');
+      }
+
+      statusMsg.className = 'status-msg success';
+      statusMsg.textContent = 'Message sent — thanks for getting in touch. We\'ll reply to your email address.';
+      form.reset();
+      charCount.textContent = '0 / 2000';
+
+    } catch (err) {
+      statusMsg.className = 'status-msg error';
+      statusMsg.textContent = err.message || 'Could not send your message. Please try again.';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send message';
+    }
+  });
+</script>
+</body>
+</html>

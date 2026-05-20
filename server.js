@@ -1,15 +1,17 @@
 /**
- * Fuel Finder NI – Backend Proxy Server
+ * FuelWatch UK – Backend Proxy Server
+ * ------------------------------------
+ * - Exchanges Client ID + Secret for an OAuth token
+ * - Fetches paginated PFS station metadata AND fuel prices
+ * - Merges them and serves to the frontend
  */
 
-// Explicitly load .env from the same directory as server.js
-// Passenger changes the working directory so we must use __dirname
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
-
-const express = require('express');
-const path    = require('path');
-const https   = require('https');
-const http    = require('http');
+require('dotenv').config();
+const express    = require('express');
+const path       = require('path');
+const https      = require('https');
+const http       = require('http');
+const nodemailer = require('nodemailer');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -25,38 +27,50 @@ const PRICES_URL    = process.env.FUEL_FINDER_PRICES_URL
   || 'https://www.fuel-finder.service.gov.uk/api/v1/pfs/fuel-prices';
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.warn('⚠️   Missing FUEL_FINDER_CLIENT_ID or FUEL_FINDER_CLIENT_SECRET');
-  console.warn('     The server will start but /api/prices will return an error.');
-  console.warn('     Set these in Plesk Node.js environment variables or a .env file.');
+  console.error('❌  Missing FUEL_FINDER_CLIENT_ID or FUEL_FINDER_CLIENT_SECRET in .env');
+  process.exit(1);
 }
 
-const fs   = require('fs');
-const CACHE_FILE = path.join(__dirname, 'cache.json');
+// ── Mail transporter (optional — only active if SMTP vars are set) ──
+const mailTransporter = (
+  process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
+) ? nodemailer.createTransport({
+  host:   process.env.SMTP_HOST,
+  port:   parseInt(process.env.SMTP_PORT || '587', 10),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth:   { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+}) : null;
+
+if (mailTransporter) {
+  console.log(`📧  Mail transporter ready (${process.env.SMTP_HOST})`);
+} else {
+  console.log('📧  No SMTP config — contact form submissions will be logged to console only.');
+}
+
+// ── Contact form rate limiter (max 5 submissions per IP per hour) ──
+const contactRateMap = new Map();
+function isRateLimited(ip) {
+  const now   = Date.now();
+  const entry = contactRateMap.get(ip) || { count: 0, resetAt: now + 3_600_000 };
+  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 3_600_000; }
+  entry.count++;
+  contactRateMap.set(ip, entry);
+  return entry.count > 5;
+}
 
 // ── Caches ──────────────────────────────────────────────────
 let cachedToken    = null;
 let tokenExpiresAt = 0;
 let cachedData     = null;
 let cachedDataAt   = 0;
-
-// Load cache from disk on startup so data is instant even after a restart
-try {
-  if (fs.existsSync(CACHE_FILE)) {
-    cachedData   = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-    cachedDataAt = new Date(cachedData.fetchedAt).getTime();
-    const ageMin = Math.round((Date.now() - cachedDataAt) / 60000);
-    console.log(`📂  Loaded cache from disk (${ageMin} min old, ${cachedData.stations?.length} stations)`);
-  }
-} catch (e) {
-  console.warn('⚠️   Could not load disk cache:', e.message);
-}
+const DATA_CACHE_MS = 5 * 60 * 1000;
 
 // ── HTTP helper ─────────────────────────────────────────────
 // NOTE: The Fuel Finder API sits behind AWS CloudFront/WAF, which
 // blocks requests without a proper User-Agent. We set browser-like
 // headers on every request to avoid being filtered out.
 const COMMON_HEADERS = {
-  'User-Agent':      'FuelFinderNI/1.0 (fuelfinderni.com; Node.js)',
+  'User-Agent':      'FuelWatch-UK/1.0 (Node.js; contact admin@example.com)',
   'Accept-Language': 'en-GB,en;q=0.9',
   'Accept-Encoding': 'identity', // disable gzip so we can read raw body easily
   'Origin':          'https://www.fuel-finder.service.gov.uk',
@@ -79,13 +93,11 @@ function request(method, url, { headers = {}, body } = {}) {
       path:     u.pathname + u.search,
       method,
       headers:  mergedHeaders,
-      timeout:  45000,
     }, res => {
       let raw = '';
       res.on('data', d => raw += d);
       res.on('end', () => resolve({ status: res.statusCode, body: raw, headers: res.headers }));
     });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out after 45s')); });
     req.on('error', reject);
     if (body) req.write(body);
     req.end();
@@ -379,7 +391,9 @@ function mergeStationsWithPrices(stations, priceRecords) {
 }
 
 // ── Routes ──────────────────────────────────────────────────
-// No-cache so browser always picks up latest HTML/JS
+app.use(express.json());
+
+// No-cache headers so browser always picks up latest HTML/JS
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -388,31 +402,27 @@ app.use(express.static(path.join(__dirname, 'public'), {
   },
 }));
 
-// ── Background data fetch ───────────────────────────────────
-// Fetches fresh data on startup and every 30 minutes so users
-// always get an instant response from cache, never wait for a
-// live API call. A lock prevents concurrent fetches.
-const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
-let refreshing = false;
-
-async function refreshData() {
-  if (refreshing) {
-    console.log('⏭️   Refresh already in progress, skipping.');
-    return;
-  }
-  refreshing = true;
-  const t = new Date().toISOString().slice(11, 19);
+app.get('/api/prices', async (req, res) => {
+  const t = new Date().toISOString().slice(11, 19); // HH:MM:SS
   try {
-    console.log(`\n[${t}] 🔄  Background refresh starting…`);
+    // Serve from 5-min cache unless ?refresh=1
+    if (!req.query.refresh && cachedData && (Date.now() - cachedDataAt) < DATA_CACHE_MS) {
+      const ageSec = Math.round((Date.now() - cachedDataAt) / 1000);
+      const freshIn = Math.round((DATA_CACHE_MS - (Date.now() - cachedDataAt)) / 1000);
+      console.log(`[${t}] 📋  Served cached (${ageSec}s old, refresh available in ${freshIn}s) – ${cachedData.stations.length} stations`);
+      return res.json(cachedData);
+    }
+
+    console.log(`\n[${t}] 🔄  Fetching fresh data from Fuel Finder…`);
     const token = await fetchToken();
 
-    // Fetch stations and prices in parallel — cuts load time roughly in half
-    console.log('📥  Fetching stations + prices in parallel…');
-    const [stations, prices] = await Promise.all([
-      fetchAllBatches(PFS_URL, token),
-      fetchAllBatches(PRICES_URL, token),
-    ]);
-    console.log(`   → ${stations.length} stations, ${prices.length} price records`);
+    console.log('📥  Fetching station metadata…');
+    const stations = await fetchAllBatches(PFS_URL, token);
+    console.log(`   → ${stations.length} stations total`);
+
+    console.log('💷  Fetching fuel prices…');
+    const prices = await fetchAllBatches(PRICES_URL, token);
+    console.log(`   → ${prices.length} price records total`);
 
     const merged     = mergeStationsWithPrices(stations, prices);
     const withPrices = merged.filter(s => s.prices.length > 0);
@@ -428,38 +438,19 @@ async function refreshData() {
     };
     cachedDataAt = Date.now();
 
-    // Save to disk so data survives server restarts
-    try {
-      fs.writeFileSync(CACHE_FILE, JSON.stringify(cachedData));
-    } catch (e) {
-      console.warn('⚠️   Could not write disk cache:', e.message);
-    }
-
-    console.log(`✅  Cache updated – ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
-  } catch (err) {
-    console.error(`[${t}] ❌  Background refresh failed:`, err.message);
-  } finally {
-    refreshing = false; // always release the lock
-  }
-}
-
-app.get('/api/prices', async (req, res) => {
-  const t = new Date().toISOString().slice(11, 19);
-  try {
-    if (cachedData) {
-      const ageSec = Math.round((Date.now() - cachedDataAt) / 1000);
-      console.log(`[${t}] 📋  Served cache (${ageSec}s old) – ${cachedData.stations.length} stations`);
-      // If someone explicitly requests a refresh, trigger one in the background
-      if (req.query.refresh) refreshData();
-      return res.json(cachedData);
-    }
-
-    // No cache yet — this only happens on first ever request before startup fetch completes
-    console.log(`[${t}] ⏳  No cache yet, waiting for startup fetch…`);
-    res.status(503).json({ error: 'Server is still loading data, please try again in 30 seconds.' });
+    console.log(`📦  Served ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
+    res.json(cachedData);
 
   } catch (err) {
     console.error(`[${t}] ❌  /api/prices error:`, err.message);
+
+    // If we have *any* cached data (even stale), serve that rather than failing outright
+    if (cachedData) {
+      const ageMin = Math.round((Date.now() - cachedDataAt) / 60000);
+      console.log(`[${t}] 🛟  Serving stale cache (${ageMin} min old) as fallback`);
+      return res.json({ ...cachedData, stale: true, error: err.message });
+    }
+
     res.status(502).json({ error: err.message });
   }
 });
@@ -476,17 +467,56 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+app.post('/api/contact', async (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Too many submissions — please try again later.' });
+  }
+
+  const { name, email, message, honeypot } = req.body;
+
+  // Silently discard bot submissions (honeypot field should always be empty)
+  if (honeypot) return res.json({ ok: true });
+
+  if (!name?.trim() || !email?.trim() || !message?.trim()) {
+    return res.status(400).json({ error: 'Please fill in all fields.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+  if (message.length > 2000) {
+    return res.status(400).json({ error: 'Message must be under 2000 characters.' });
+  }
+
+  const subject = `Fuel Finder NI contact: ${name.trim()}`;
+  const body    = `Name:    ${name.trim()}\nEmail:   ${email.trim()}\n\n${message.trim()}`;
+
+  if (mailTransporter) {
+    try {
+      await mailTransporter.sendMail({
+        from:    `"Fuel Finder NI" <${process.env.SMTP_USER}>`,
+        to:      process.env.CONTACT_EMAIL_TO || process.env.SMTP_USER,
+        replyTo: email.trim(),
+        subject,
+        text:    body,
+      });
+    } catch (err) {
+      console.error('Contact form mail error:', err.message);
+      return res.status(500).json({ error: 'Could not send your message — please try again later.' });
+    }
+  } else {
+    console.log(`\n[Contact form]\n${body}\n`);
+  }
+
+  res.json({ ok: true });
+});
+
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 app.listen(PORT, () => {
-  console.log(`\n⛽  Fuel Finder NI running on port ${PORT}`);
-  console.log(`    Client ID:   ${CLIENT_ID ? CLIENT_ID.slice(0, 8) + '…' : '(NOT SET)'}`);
+  console.log(`\n⛽  FuelWatch UK running at http://localhost:${PORT}`);
+  console.log(`    Client ID:   ${CLIENT_ID.slice(0, 8)}…`);
   console.log(`    Token URL:   ${TOKEN_URL}`);
   console.log(`    PFS URL:     ${PFS_URL}`);
   console.log(`    Prices URL:  ${PRICES_URL}\n`);
-
-  // Fetch data immediately on startup then every 15 minutes
-  // This means users always get instant cached responses
-  refreshData();
-  setInterval(refreshData, REFRESH_INTERVAL_MS);
 });
