@@ -47,7 +47,7 @@ function brevoKeepAlive() {
   req.end();
 }
 brevoKeepAlive(); // ping on startup
-setInterval(brevoKeepAlive, 30 * 24 * 60 * 60 * 1000); // then every 30 days
+setInterval(brevoKeepAlive, 7 * 24 * 60 * 60 * 1000); // then every 7 days
 
 function brevoSend(to, replyTo, subject, text) {
   const body = JSON.stringify({
