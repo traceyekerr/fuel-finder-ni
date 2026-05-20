@@ -35,6 +35,20 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY;
 if (BREVO_API_KEY) console.log('📧  Brevo email ready');
 else console.log('📧  No BREVO_API_KEY — contact form submissions will be logged to console only.');
 
+function brevoKeepAlive() {
+  if (!BREVO_API_KEY) return;
+  const req = https.request({
+    hostname: 'api.brevo.com',
+    path:     '/v3/account',
+    method:   'GET',
+    headers:  { 'api-key': BREVO_API_KEY, 'Accept': 'application/json' },
+  }, res => console.log(`📧  Brevo keep-alive ping: ${res.statusCode}`));
+  req.on('error', err => console.error('📧  Brevo keep-alive error:', err.message));
+  req.end();
+}
+brevoKeepAlive(); // ping on startup
+setInterval(brevoKeepAlive, 30 * 24 * 60 * 60 * 1000); // then every 30 days
+
 function brevoSend(to, replyTo, subject, text) {
   const body = JSON.stringify({
     sender:      { name: 'Fuel Finder NI', email: process.env.BREVO_SENDER_EMAIL || to },
