@@ -11,7 +11,6 @@ const express    = require('express');
 const path       = require('path');
 const https      = require('https');
 const http       = require('http');
-const nodemailer = require('nodemailer');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -31,27 +30,42 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
   process.exit(1);
 }
 
-// ── Mail transporter (optional — only active if SMTP vars are set) ──
-const mailTransporter = (
-  process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
-) ? nodemailer.createTransport({
-  host:              process.env.SMTP_HOST,
-  port:              parseInt(process.env.SMTP_PORT || '587', 10),
-  secure:            process.env.SMTP_SECURE === 'true',
-  auth:              { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  connectionTimeout: 10000,
-  greetingTimeout:   5000,
-  socketTimeout:     10000,
-}) : null;
+// ── Brevo email API (uses HTTPS port 443 — works on all VPS providers) ──
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+if (BREVO_API_KEY) console.log('📧  Brevo email ready');
+else console.log('📧  No BREVO_API_KEY — contact form submissions will be logged to console only.');
 
-if (mailTransporter) {
-  console.log(`📧  Mail transporter ready (${process.env.SMTP_HOST})`);
-  mailTransporter.verify(err => {
-    if (err) console.error('📧  SMTP verify failed:', err.message);
-    else     console.log('📧  SMTP connection verified ✓');
+function brevoSend(to, replyTo, subject, text) {
+  const body = JSON.stringify({
+    sender:      { name: 'Fuel Finder NI', email: process.env.BREVO_SENDER_EMAIL || to },
+    to:          [{ email: to }],
+    replyTo:     { email: replyTo },
+    subject,
+    textContent: text,
   });
-} else {
-  console.log('📧  No SMTP config — contact form submissions will be logged to console only.');
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.brevo.com',
+      path:     '/v3/smtp/email',
+      method:   'POST',
+      headers:  {
+        'api-key':        BREVO_API_KEY,
+        'Content-Type':   'application/json',
+        'Accept':         'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, res => {
+      let raw = '';
+      res.on('data', d => raw += d);
+      res.on('end', () => {
+        if (res.statusCode >= 400) reject(new Error(`Brevo ${res.statusCode}: ${raw.slice(0, 200)}`));
+        else resolve();
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 
 // ── Contact form rate limiter (max 5 submissions per IP per hour) ──
@@ -498,14 +512,13 @@ app.post('/api/contact', async (req, res) => {
     const subject = `Fuel Finder NI contact: ${name.trim()}`;
     const body    = `Name:    ${name.trim()}\nEmail:   ${email.trim()}\n\n${message.trim()}`;
 
-    if (mailTransporter) {
-      await mailTransporter.sendMail({
-        from:    `"Fuel Finder NI" <${process.env.SMTP_USER}>`,
-        to:      process.env.CONTACT_EMAIL_TO || process.env.SMTP_USER,
-        replyTo: email.trim(),
+    if (BREVO_API_KEY) {
+      await brevoSend(
+        process.env.CONTACT_EMAIL_TO || process.env.BREVO_SENDER_EMAIL,
+        email.trim(),
         subject,
-        text:    body,
-      });
+        body
+      );
     } else {
       console.log(`\n[Contact form]\n${body}\n`);
     }
