@@ -909,9 +909,12 @@ function initMap() {
     attributionControl: true,
   });
   map.attributionControl.setPosition('topleft');
-  // Carto "Voyager" – coloured, readable streets/places without being too bright
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap © CARTO', subdomains: 'abcd', maxZoom: 19
+  // Carto "Voyager" – coloured, readable streets/places without being too bright.
+  // CARTO requires a free key (https://carto.com/basemaps/apikey – 5M tiles/month).
+  // Without one, every tile comes back stamped "API KEY REQUIRED".
+  const CARTO_KEY = 'cb1_3oiy_1_6eb0bede730416be319f4358';
+  L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`, {
+    attribution: '© OpenStreetMap © CARTO', maxZoom: 19
   }).addTo(map);
   map.zoomControl.setPosition('bottomleft');
 
