@@ -9,8 +9,10 @@
 require('dotenv').config();
 const express    = require('express');
 const path       = require('path');
+const fs         = require('fs');
 const https      = require('https');
 const http       = require('http');
+const ssr        = require('./ssr');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -428,6 +430,35 @@ function mergeStationsWithPrices(stations, priceRecords) {
 // ── Routes ──────────────────────────────────────────────────
 app.use(express.json());
 
+// Canonical host — www and apex both resolved to this server and returned
+// identical pages, so Google reported "Duplicate without user-selected
+// canonical". Send www traffic to the apex with a permanent redirect so
+// every page has exactly one indexable URL.
+const CANONICAL_HOST = process.env.CANONICAL_HOST || 'fuelfinderni.com';
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').toLowerCase();
+  if (host === `www.${CANONICAL_HOST}`) {
+    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+  }
+  next();
+});
+
+// Home page — served with the current prices already rendered into the markup.
+// Must be registered before express.static, which would otherwise answer "/"
+// with the raw index.html and its empty placeholders.
+const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+
+app.get(['/', '/index.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma',        'no-cache');
+  res.setHeader('Expires',       '0');
+  res.type('html').send(ssr.renderHome(INDEX_HTML, cachedData, {
+    regionNoun: 'NI stations',
+    filter:     s => s.isNI,   // the client shows NI only; match it
+    fuel:       'B7',          // the Diesel tab is the one marked active
+  }));
+});
+
 // No-cache headers so browser always picks up latest HTML/JS
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res) => {
@@ -436,6 +467,36 @@ app.use(express.static(path.join(__dirname, 'public'), {
     res.setHeader('Expires',       '0');
   },
 }));
+
+// Fetch everything fresh and replace the cache. Shared by /api/prices and the
+// boot-time warm-up, so both build the cache exactly the same way.
+async function refreshCache() {
+  const token = await fetchToken();
+
+  console.log('📥  Fetching station metadata…');
+  const stations = await fetchAllBatches(PFS_URL, token);
+  console.log(`   → ${stations.length} stations total`);
+
+  console.log('💷  Fetching fuel prices…');
+  const prices = await fetchAllBatches(PRICES_URL, token);
+  console.log(`   → ${prices.length} price records total`);
+
+  const merged     = mergeStationsWithPrices(stations, prices);
+  const withPrices = merged.filter(s => s.prices.length > 0);
+
+  cachedData = {
+    stations:  withPrices,
+    fetchedAt: new Date().toISOString(),
+    counts: {
+      total:      merged.length,
+      withPrices: withPrices.length,
+      ni:         withPrices.filter(s => s.isNI).length,
+    },
+  };
+  cachedDataAt = Date.now();
+
+  return cachedData;
+}
 
 app.get('/api/prices', async (req, res) => {
   const t = new Date().toISOString().slice(11, 19); // HH:MM:SS
@@ -449,32 +510,10 @@ app.get('/api/prices', async (req, res) => {
     }
 
     console.log(`\n[${t}] 🔄  Fetching fresh data from Fuel Finder…`);
-    const token = await fetchToken();
+    const data = await refreshCache();
 
-    console.log('📥  Fetching station metadata…');
-    const stations = await fetchAllBatches(PFS_URL, token);
-    console.log(`   → ${stations.length} stations total`);
-
-    console.log('💷  Fetching fuel prices…');
-    const prices = await fetchAllBatches(PRICES_URL, token);
-    console.log(`   → ${prices.length} price records total`);
-
-    const merged     = mergeStationsWithPrices(stations, prices);
-    const withPrices = merged.filter(s => s.prices.length > 0);
-
-    cachedData = {
-      stations:  withPrices,
-      fetchedAt: new Date().toISOString(),
-      counts: {
-        total:      merged.length,
-        withPrices: withPrices.length,
-        ni:         withPrices.filter(s => s.isNI).length,
-      },
-    };
-    cachedDataAt = Date.now();
-
-    console.log(`📦  Served ${withPrices.length} stations (${cachedData.counts.ni} NI)\n`);
-    res.json(cachedData);
+    console.log(`📦  Served ${data.stations.length} stations (${data.counts.ni} NI)\n`);
+    res.json(data);
 
   } catch (err) {
     console.error(`[${t}] ❌  /api/prices error:`, err.message);
@@ -547,7 +586,18 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// Unknown URLs get a real 404. This used to serve index.html with a 200,
+// which meant every typo or stale link became another indexable copy of the
+// home page. Nothing here uses client-side routing, so a 404 is correct.
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+// Warm the cache at boot so the first visitor after a restart — including a
+// crawler — gets a home page with real figures rather than placeholders.
+refreshCache()
+  .then(d => console.log(`🔥  Cache warmed – ${d.stations.length} stations ready (${d.counts.ni} NI)`))
+  .catch(e => console.error('🔥  Cache warm-up failed (will retry on first request):', e.message));
 
 app.listen(PORT, () => {
   console.log(`\n⛽  FuelWatch UK running at http://localhost:${PORT}`);
