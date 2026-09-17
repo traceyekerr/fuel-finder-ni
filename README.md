@@ -1,4 +1,4 @@
-# ⛽ FuelWatch UK
+# ⛽ FuelFinder Map NI
 
 Live UK fuel price map powered by the GOV.UK Fuel Finder API.
 
